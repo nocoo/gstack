@@ -1,5 +1,5 @@
 ---
-name: browse
+name: gstack-browse
 version: 2.0.0
 description: |
   Fast web browsing via persistent headless Chromium daemon. Navigate to any URL,
@@ -19,7 +19,7 @@ Every subsequent call: ~100-200ms. Auto-shuts down after 30 min idle.
 
 ## IMPORTANT
 
-- Use `~/.claude/skills/browse/dist/browse` (compiled binary) or `bun run ~/.claude/skills/browse/src/cli.ts` via Bash.
+- Use `~/.claude/skills/gstack-browse/dist/browse` (compiled binary) or `bun run ~/.claude/skills/gstack-browse/src/cli.ts` via Bash.
 - NEVER use `mcp__claude-in-chrome__*` tools. They are slow and unreliable.
 - The browser persists between calls — cookies, tabs, and state carry over.
 - The server auto-starts on first command. No setup needed.
@@ -27,7 +27,7 @@ Every subsequent call: ~100-200ms. Auto-shuts down after 30 min idle.
 ## Quick Reference
 
 ```bash
-B=~/.claude/skills/browse/dist/browse
+B=~/.claude/skills/gstack-browse/dist/browse
 
 # Navigate to a page
 $B goto https://example.com
@@ -187,7 +187,7 @@ browse restart                 Kill + restart server
 ## Multi-step Workflow Example
 
 ```bash
-B=~/.claude/skills/browse/dist/browse
+B=~/.claude/skills/gstack-browse/dist/browse
 
 # Login flow
 $B goto https://example.com/login

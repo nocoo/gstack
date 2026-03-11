@@ -17,7 +17,7 @@ const STATE_FILE = process.env.BROWSE_STATE_FILE || '/tmp/browse-server.json';
 const SERVER_SCRIPT = process.env.BROWSE_SERVER_SCRIPT
   || (import.meta.dir.startsWith('/') && !import.meta.dir.includes('$bunfs')
     ? path.resolve(import.meta.dir, 'server.ts')
-    : path.resolve(process.env.HOME || '/tmp', '.claude/skills/browse/src/server.ts'));
+    : path.resolve(process.env.HOME || '/tmp', '.claude/skills/gstack-browse/src/server.ts'));
 const MAX_START_WAIT = 8000; // 8 seconds to start
 
 interface ServerState {
