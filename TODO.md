@@ -77,6 +77,7 @@
     - Pass/fail with evidence
 
 ## Phase 5: State & Sessions
+  - [ ] Bundle server.ts into compiled binary (eliminate resolveServerScript() fallback chain entirely) (P2, M)
   - [ ] v20 encryption format support (AES-256-GCM) — future Chromium versions may change from v10
   - [ ] Sessions (isolated browser instances with separate cookies/storage/history)
   - [ ] State persistence (save/load cookies + localStorage to JSON files)
