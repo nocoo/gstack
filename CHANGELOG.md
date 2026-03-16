@@ -1,10 +1,13 @@
 # Changelog
 
+## 0.4.3 — 2026-03-16
+
+- **New `/document-release` skill.** Run it after `/ship` but before merging — it reads every doc file in your project, cross-references the diff, and updates README, ARCHITECTURE, CONTRIBUTING, CHANGELOG, and TODOS to match what you actually shipped. Risky changes get surfaced as questions; everything else is automatic.
+
 ## 0.4.2 — 2026-03-16
 
 - **Skills now respect your branch target.** `/ship`, `/review`, `/qa`, and `/plan-ceo-review` detect which branch your PR actually targets instead of assuming `main`. Stacked branches, Conductor workspaces targeting feature branches, and repos using `master` all just work now.
 - **`/retro` works on any default branch.** Repos using `master`, `develop`, or other default branch names are detected automatically — no more empty retros because the branch name was wrong.
-- **New `/document-release` skill.** Run it after `/ship` but before merging — it reads every doc file in your project, cross-references the diff, and updates README, ARCHITECTURE, CONTRIBUTING, CHANGELOG, and TODOS to match what you actually shipped. Risky changes get surfaced as questions; everything else is automatic.
 - **New `{{BASE_BRANCH_DETECT}}` placeholder** for skill authors — drop it into any template and get 3-step branch detection (PR base → repo default → fallback) for free.
 - **3 new E2E smoke tests** validate base branch detection works end-to-end across ship, review, and retro skills.
 
