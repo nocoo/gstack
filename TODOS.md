@@ -480,7 +480,7 @@ Shipped as `/design-consultation` on garrytan/design branch. Renamed from `/setu
 
 **Effort:** M (human) / S (CC)
 **Priority:** P3
-**Depends on:** Boil the Lake shipped (v0.5.3)
+**Depends on:** Boil the Lake shipped (v0.6.1)
 
 ## Completed
 
