@@ -6,6 +6,16 @@ And right now I am in the middle of something that feels like a new era entirely
 
 In the last 60 days I have written **over 600,000 lines of production code** — 35% tests — and I am doing **10,000 to 20,000 usable lines of code per day** as a part-time part of my day while doing all my duties as CEO of YC. That is not a typo. My last `/retro` across 3 projects: **140,751 lines added, 362 commits, ~115k net LOC** in one period. The models are getting dramatically better every week. We are at the dawn of something real — one person shipping at a scale that used to require a team of twenty.
 
+**2026 — 1,237 contributions and counting:**
+
+![GitHub contributions 2026 — 1,237 contributions, massive acceleration in Jan-Mar](docs/images/github-2026.png)
+
+**2013 — when I built Bookface at YC (772 contributions):**
+
+![GitHub contributions 2013 — 772 contributions building Bookface at YC](docs/images/github-2013.png)
+
+Same person. Different era. The difference is the tooling.
+
 **gstack is how I do it.** It is my open source software factory. It turns Claude Code into a virtual engineering team you actually manage — a CEO who rethinks the product, an eng manager who locks the architecture, a designer who catches AI slop, a paranoid reviewer who finds production bugs, a QA lead who opens a real browser and clicks through your app, and a release engineer who ships the PR. Thirteen specialists, all as slash commands, all Markdown, **all free, MIT license, available right now.**
 
 I am learning how to get to the edge of what agentic systems can do as of March 2026, and this is my live experiment. I am sharing it because I want the whole world on this journey with me.
