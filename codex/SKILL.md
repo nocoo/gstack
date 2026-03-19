@@ -28,8 +28,10 @@ touch ~/.gstack/sessions/"$PPID"
 _SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
 find ~/.gstack/sessions -mmin +120 -type f -delete 2>/dev/null || true
 _CONTRIB=$(~/.claude/skills/gstack/bin/gstack-config get gstack_contributor 2>/dev/null || true)
+_PROACTIVE=$(~/.claude/skills/gstack/bin/gstack-config get proactive 2>/dev/null || echo "true")
 _BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 echo "BRANCH: $_BRANCH"
+echo "PROACTIVE: $_PROACTIVE"
 _LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
 echo "LAKE_INTRO: $_LAKE_SEEN"
 ```
@@ -204,7 +206,10 @@ Parse the user's input to determine which mode to run:
      B) Challenge the diff (adversarial — try to break it)
      C) Something else — I'll provide a prompt
      ```
-   - If no diff, check for plan files: `ls -t ~/.claude/plans/*.md 2>/dev/null | head -1`
+   - If no diff, check for plan files scoped to the current project:
+     `ls -t ~/.claude/plans/*.md 2>/dev/null | xargs grep -l "$(basename $(pwd))" 2>/dev/null | head -1`
+     If no project-scoped match, fall back to: `ls -t ~/.claude/plans/*.md 2>/dev/null | head -1`
+     but warn the user: "Note: this plan may be from a different project."
    - If a plan file exists, offer to review it
    - Otherwise, ask: "What would you like to ask Codex?"
 4. `/codex <anything else>` — **Consult mode** (Step 2C), where the remaining text is the prompt
@@ -271,8 +276,8 @@ CROSS-MODEL ANALYSIS:
 ```bash
 eval $(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)
 BRANCH_SLUG=$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr '/' '-')
-mkdir -p ~/.gstack/projects/$SLUG
-echo '{"skill":"codex-review","timestamp":"TIMESTAMP","status":"STATUS","gate":"GATE","findings":N}' >> ~/.gstack/projects/$SLUG/$BRANCH_SLUG-reviews.jsonl
+mkdir -p ~/.gstack/projects/"$SLUG"
+echo '{"skill":"codex-review","timestamp":"TIMESTAMP","status":"STATUS","gate":"GATE","findings":N}' >> ~/.gstack/projects/"$SLUG"/"$BRANCH_SLUG"-reviews.jsonl
 ```
 
 Substitute: TIMESTAMP (ISO 8601), STATUS ("clean" if PASS, "issues_found" if FAIL),
@@ -369,8 +374,10 @@ TMPERR=$(mktemp /tmp/codex-err-XXXXXX.txt)
 3. **Plan review auto-detection:** If the user's prompt is about reviewing a plan,
 or if plan files exist and the user said `/codex` with no arguments:
 ```bash
-ls -t ~/.claude/plans/*.md 2>/dev/null | head -1
+ls -t ~/.claude/plans/*.md 2>/dev/null | xargs grep -l "$(basename $(pwd))" 2>/dev/null | head -1
 ```
+If no project-scoped match, fall back to `ls -t ~/.claude/plans/*.md 2>/dev/null | head -1`
+but warn: "Note: this plan may be from a different project — verify before sending to Codex."
 Read the plan file and prepend the persona to the user's prompt:
 "You are a brutally honest technical reviewer. Review this plan for: logical gaps and
 unstated assumptions, missing error handling or edge cases, overcomplexity (is there a
@@ -384,7 +391,7 @@ THE PLAN:
 
 For a **new session:**
 ```bash
-codex exec "<prompt>" -s read-only -c 'model_reasoning_effort="high"' --enable web_search_cached --json 2>/tmp/codex-consult-err.txt | python3 -c "
+codex exec "<prompt>" -s read-only -c 'model_reasoning_effort="high"' --enable web_search_cached --json 2>"$TMPERR" | python3 -c "
 import sys, json
 for line in sys.stdin:
     line = line.strip()
@@ -417,7 +424,7 @@ for line in sys.stdin:
 
 For a **resumed session** (user chose "Continue"):
 ```bash
-codex exec resume <session-id> "<prompt>" -s read-only -c 'model_reasoning_effort="high"' --enable web_search_cached --json 2>/tmp/codex-consult-err.txt | python3 -c "
+codex exec resume <session-id> "<prompt>" -s read-only -c 'model_reasoning_effort="high"' --enable web_search_cached --json 2>"$TMPERR" | python3 -c "
 <same python streaming parser as above>
 "
 ```

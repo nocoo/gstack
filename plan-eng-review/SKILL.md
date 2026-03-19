@@ -27,8 +27,10 @@ touch ~/.gstack/sessions/"$PPID"
 _SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
 find ~/.gstack/sessions -mmin +120 -type f -delete 2>/dev/null || true
 _CONTRIB=$(~/.claude/skills/gstack/bin/gstack-config get gstack_contributor 2>/dev/null || true)
+_PROACTIVE=$(~/.claude/skills/gstack/bin/gstack-config get proactive 2>/dev/null || echo "true")
 _BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 echo "BRANCH: $_BRANCH"
+echo "PROACTIVE: $_PROACTIVE"
 _LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
 echo "LAKE_INTRO: $_LAKE_SEEN"
 ```
@@ -222,16 +224,12 @@ A) Yes — let Codex critique the plan independently
 B) No — proceed with the Claude review only
 ```
 
-If the user chooses A: read the plan file content, then pass it into the Codex prompt so it has the actual plan to critique:
+If the user chooses A: tell Codex to read the plan file itself (avoids ARG_MAX limits for large plans):
 ```bash
-PLAN_CONTENT=$(cat <plan-file-path>)
-codex exec "You are a brutally honest technical reviewer. Review this plan for: logical gaps and unstated assumptions, missing error handling or edge cases, overcomplexity (is there a simpler approach?), feasibility risks (what could go wrong?), and missing dependencies or sequencing issues. Be direct. Be terse. No compliments. Just the problems.
-
-THE PLAN:
-$PLAN_CONTENT" -s read-only -c 'model_reasoning_effort="high"' --enable web_search_cached
+codex exec "You are a brutally honest technical reviewer. Read the plan file at <plan-file-path> and review it for: logical gaps and unstated assumptions, missing error handling or edge cases, overcomplexity (is there a simpler approach?), feasibility risks (what could go wrong?), and missing dependencies or sequencing issues. Be direct. Be terse. No compliments. Just the problems." -s read-only -c 'model_reasoning_effort="high"' --enable web_search_cached
 ```
 
-Replace `<plan-file-path>` with the actual path to the plan file detected earlier.
+Replace `<plan-file-path>` with the actual path to the plan file detected earlier. Codex has filesystem access in read-only mode and will read the file itself.
 
 Present the full output under a `CODEX SAYS (plan review):` header. Note any concerns
 that should inform the subsequent engineering review sections.
