@@ -289,7 +289,21 @@ export async function handleReadCommand(
         localStorage: { ...localStorage },
         sessionStorage: { ...sessionStorage },
       }));
-      return JSON.stringify(storage, null, 2);
+      // Redact values that look like secrets (tokens, keys, passwords, JWTs)
+      const SENSITIVE_KEY = /token|secret|key|password|credential|auth|jwt|session|csrf|api.?key/i;
+      const SENSITIVE_VALUE = /^(eyJ|sk-|pk-|ghp_|gho_|github_pat_|xox[bpsa]-|Bearer\s)/;
+      const redacted = JSON.parse(JSON.stringify(storage));
+      for (const storeType of ['localStorage', 'sessionStorage'] as const) {
+        const store = redacted[storeType];
+        if (!store) continue;
+        for (const [key, value] of Object.entries(store)) {
+          if (typeof value !== 'string') continue;
+          if (SENSITIVE_KEY.test(key) || SENSITIVE_VALUE.test(value)) {
+            store[key] = `[REDACTED — ${value.length} chars]`;
+          }
+        }
+      }
+      return JSON.stringify(redacted, null, 2);
     }
 
     case 'perf': {
