@@ -1,0 +1,49 @@
+#!/bin/bash
+# Launch Chrome with CDP (remote debugging) enabled.
+# Usage: chrome-cdp [port]
+#
+# Chrome MUST be fully quit before running this — if it's already running,
+# it ignores --remote-debugging-port and opens in the existing session.
+
+PORT="${1:-9222}"
+CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+if ! [ -f "$CHROME" ]; then
+  echo "Chrome not found at $CHROME" >&2
+  exit 1
+fi
+
+# Check if Chrome is running
+if pgrep -f "Google Chrome" >/dev/null 2>&1; then
+  echo "Chrome is still running. Quitting..."
+  osascript -e 'tell application "Google Chrome" to quit' 2>/dev/null
+
+  # Wait for it to fully exit
+  for i in $(seq 1 20); do
+    pgrep -f "Google Chrome" >/dev/null 2>&1 || break
+    sleep 0.5
+  done
+
+  if pgrep -f "Google Chrome" >/dev/null 2>&1; then
+    echo "Chrome won't quit. Force-killing..." >&2
+    pkill -f "Google Chrome"
+    sleep 1
+  fi
+fi
+
+echo "Launching Chrome with CDP on port $PORT..."
+"$CHROME" --remote-debugging-port="$PORT" --restore-last-session &
+disown
+
+# Wait for CDP to be available
+for i in $(seq 1 30); do
+  if curl -s "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
+    echo "CDP ready on port $PORT"
+    echo "Run: \$B connect chrome"
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "CDP not available after 30s. Chrome may have started without debug port." >&2
+exit 1
