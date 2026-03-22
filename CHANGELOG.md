@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.10.0] - 2026-03-22 — Community Security Wave
+
+### Added
+
+- **`/cso` — Chief Security Officer audit.** Run `/cso` on any codebase for an OWASP Top 10 + STRIDE threat model scan. Checks injection, auth, crypto, access control, and six more categories. Each finding includes severity, evidence, and a fix. Community contribution from the HMAKT99 batch.
+- **`browse storage` now redacts secrets automatically.** Tokens, JWTs, API keys, GitHub PATs, and Bearer tokens are detected by both key name (`auth_token`, `session`, `api_key`, etc.) and value prefix (`eyJ`, `sk-`, `ghp_`, `xox`). You see `[REDACTED — 42 chars]` instead of the secret. No more accidentally pasting credentials into your conversation.
+- **Azure metadata endpoint blocked.** The existing SSRF protection for `browse goto` now also blocks `metadata.azure.internal` — closing the last cloud provider gap alongside AWS and GCP.
+
+### Fixed
+
+- **`gstack-slug` hardened against shell injection.** The slug script output is now sanitized to alphanumeric, dot, dash, and underscore only. Prevents shell metacharacter injection when the output is consumed via `eval`. New test validates the character allowlist.
+- **Orphaned Chromium processes cleaned up on restart.** When the browse server restarts or loses connection, it now kills the old server process before starting a new one. No more zombie browsers accumulating.
+- **CI workflow YAML lint error fixed.** Nested mapping in compact sequence entries in `skill-docs.yml` now uses proper block syntax.
+
+### For contributors
+
+- **Community PR triage process documented.** CONTRIBUTING.md now includes the wave-based triage pattern: categorize, deduplicate, collector branch, close with context, ship as one PR. References PR #205 as the original example.
+- **Storage redaction test coverage.** Four new tests verify key-based redaction, value-based prefix detection, pass-through for normal values, and length preservation in redacted output.
+
 ## [0.9.9.0] - 2026-03-21 — Harder Office Hours
 
 ### Changed

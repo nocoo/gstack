@@ -75,6 +75,7 @@ gstack/
 ├── investigate/     # /investigate skill (systematic root-cause debugging)
 ├── retro/           # Retrospective skill
 ├── document-release/ # /document-release skill (post-ship doc updates)
+├── cso/             # /cso skill (OWASP Top 10 + STRIDE security audit)
 ├── setup            # One-time setup: build binary + symlink skills
 ├── SKILL.md         # Generated from SKILL.md.tmpl (don't edit directly)
 ├── SKILL.md.tmpl    # Template: edit this, run gen:skill-docs
