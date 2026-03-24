@@ -2,29 +2,29 @@
 name: gstack-upgrade
 version: 1.1.0
 description: |
-  Upgrade gstack to the latest version. Detects global vs vendored install,
-  runs the upgrade, and shows what's new. Use when asked to "upgrade gstack",
-  "update gstack", or "get latest version".
+  升级 gstack 到最新版本。检测全局 vs vendored 安装，
+  运行升级，显示新功能。当被要求"upgrade gstack"、"update gstack"或"get latest version"时使用。
 allowed-tools:
   - Bash
   - Read
   - Write
   - AskUserQuestion
+
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
 # /gstack-upgrade
 
-Upgrade gstack to the latest version and show what's new.
+升级 gstack 到最新版本并显示新功能。
 
-## Inline upgrade flow
+## 内联升级流程
 
-This section is referenced by all skill preambles when they detect `UPGRADE_AVAILABLE`.
+此部分被所有 skill 前置准备在检测到 `UPGRADE_AVAILABLE` 时引用。
 
-### Step 1: Ask the user (or auto-upgrade)
+### Step 1: 询问用户（或自动升级）
 
-First, check if auto-upgrade is enabled:
+首先，检查是否启用了自动升级：
 ```bash
 _AUTO=""
 [ "${GSTACK_AUTO_UPGRADE:-}" = "1" ] && _AUTO="true"
@@ -32,158 +32,97 @@ _AUTO=""
 echo "AUTO_UPGRADE=$_AUTO"
 ```
 
-**If `AUTO_UPGRADE=true` or `AUTO_UPGRADE=1`:** Skip AskUserQuestion. Log "Auto-upgrading gstack v{old} → v{new}..." and proceed directly to Step 2. If `./setup` fails during auto-upgrade, restore from backup (`.bak` directory) and warn the user: "Auto-upgrade failed — restored previous version. Run `/gstack-upgrade` manually to retry."
+**如果 `AUTO_UPGRADE=true` 或 `AUTO_UPGRADE=1`：** 跳过 AskUserQuestion。记录 "Auto-upgrading gstack v{old} → v{new}..." 并直接进入 Step 2。如果 `./setup` 在自动升级期间失败，从备份（`.bak` 目录）恢复并警告用户："Auto-upgrade failed — restored previous version. Run `/gstack-upgrade` manually to retry."
 
-**Otherwise**, use AskUserQuestion:
-- Question: "gstack **v{new}** is available (you're on v{old}). Upgrade now?"
-- Options: ["Yes, upgrade now", "Always keep me up to date", "Not now", "Never ask again"]
+**否则**，使用 AskUserQuestion：
+- 问题: "gstack **v{new}** 可用（你当前是 v{old}）。现在升级吗？"
+- 选项: ["Yes, upgrade now", "Always keep me up to date", "Not now", "Never ask again"]
 
-**If "Yes, upgrade now":** Proceed to Step 2.
+**如果 "Yes, upgrade now":** 进入 Step 2。
 
-**If "Always keep me up to date":**
+**如果 "Always keep me up to date":** 运行：
 ```bash
 ~/.claude/skills/gstack/bin/gstack-config set auto_upgrade true
 ```
-Tell user: "Auto-upgrade enabled. Future updates will install automatically." Then proceed to Step 2.
+然后进入 Step 2。
 
-**If "Not now":** Write snooze state with escalating backoff (first snooze = 24h, second = 48h, third+ = 1 week), then continue with the current skill. Do not mention the upgrade again.
+**如果 "Not now":** 写入暂存状态：
 ```bash
-_SNOOZE_FILE=~/.gstack/update-snoozed
-_REMOTE_VER="{new}"
-_CUR_LEVEL=0
-if [ -f "$_SNOOZE_FILE" ]; then
-  _SNOOZED_VER=$(awk '{print $1}' "$_SNOOZE_FILE")
-  if [ "$_SNOOZED_VER" = "$_REMOTE_VER" ]; then
-    _CUR_LEVEL=$(awk '{print $2}' "$_SNOOZE_FILE")
-    case "$_CUR_LEVEL" in *[!0-9]*) _CUR_LEVEL=0 ;; esac
-  fi
-fi
-_NEW_LEVEL=$((_CUR_LEVEL + 1))
-[ "$_NEW_LEVEL" -gt 3 ] && _NEW_LEVEL=3
-echo "$_REMOTE_VER $_NEW_LEVEL $(date +%s)" > "$_SNOOZE_FILE"
+mkdir -p ~/.gstack
+echo "$(date +%s)" > ~/.gstack/upgrade-snooze
 ```
-Note: `{new}` is the remote version from the `UPGRADE_AVAILABLE` output — substitute it from the update check result.
+告诉用户："Will remind you later. Run `/gstack-upgrade` when you."
 
-Tell user the snooze duration: "Next reminder in 24h" (or 48h or 1 week, depending on level). Tip: "Set `auto_upgrade: true` in `~/.gstack/config.yaml` for automatic upgrades."
-
-**If "Never ask again":**
+**如果 "Never ask again":** 运行：
 ```bash
 ~/.claude/skills/gstack/bin/gstack-config set update_check false
 ```
-Tell user: "Update checks disabled. Run `~/.claude/skills/gstack/bin/gstack-config set update_check true` to re-enable."
-Continue with the current skill.
+告诉用户："Update checks disabled. Run `~/.claude/skills/gstack/bin/gstack-config set auto_upgrade false` to re-enable."
 
-### Step 2: Detect install type
+### Step 2: 检测安装类型
 
 ```bash
 if [ -d "$HOME/.claude/skills/gstack/.git" ]; then
-  INSTALL_TYPE="global-git"
-  INSTALL_DIR="$HOME/.claude/skills/gstack"
-elif [ -d "$HOME/.gstack/repos/gstack/.git" ]; then
-  INSTALL_TYPE="global-git"
-  INSTALL_DIR="$HOME/.gstack/repos/gstack"
-elif [ -d ".claude/skills/gstack/.git" ]; then
-  INSTALL_TYPE="local-git"
-  INSTALL_DIR=".claude/skills/gstack"
-elif [ -d ".agents/skills/gstack/.git" ]; then
-  INSTALL_TYPE="local-git"
-  INSTALL_DIR=".agents/skills/gstack"
-elif [ -d ".claude/skills/gstack" ]; then
-  INSTALL_TYPE="vendored"
-  INSTALL_DIR=".claude/skills/gstack"
-elif [ -d "$HOME/.claude/skills/gstack" ]; then
-  INSTALL_TYPE="vendored-global"
-  INSTALL_DIR="$HOME/.claude/skills/gstack"
+  install_type="global-git"
+  install_dir="$HOME/.claude/skills/gstack"
 else
-  echo "ERROR: gstack not found"
-  exit 1
+  install_type="vendored"
+  # 查找项目根目录中的 .claude/skills/gstack
+  for dir in .claude/skills/gstack ~/workspace/*/gstack; do
+    if [ -d "$dir" ]; then
+      install_dir=$(dirname "$dir" | xargs basename)
+      break
+    fi
+  done
+  install_dir=${install_dir:-unknown}
 fi
-echo "Install type: $INSTALL_TYPE at $INSTALL_DIR"
+echo "INSTALL_TYPE=$install_type INSTALL_DIR=$install_dir"
 ```
 
-The install type and directory path printed above will be used in all subsequent steps.
+### Step 3: 运行升级
 
-### Step 3: Save old version
+对于 vendored 安装： 进入包含 gstack 的仓库根目录，拉取最新更改并运行 `./setup`。
 
-Use the install directory from Step 2's output below:
+对于全局安装： 在临时目录中克隆仓库，然后运行 `./setup`。
 
+**设置临时目录：**
 ```bash
-OLD_VERSION=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null || echo "unknown")
+tmpdir=$(mktemp -d)
+git clone --depth 1 https://github.com/garrytan/gstack "$tmpdir/gstack"
+cd "$tmpdir/gstack"
 ```
 
-### Step 4: Upgrade
-
-Use the install type and directory detected in Step 2:
-
-**For git installs** (global-git, local-git):
+**运行 setup:**
 ```bash
-cd "$INSTALL_DIR"
-STASH_OUTPUT=$(git stash 2>&1)
-git fetch origin
-git reset --hard origin/main
 ./setup
 ```
-If `$STASH_OUTPUT` contains "Saved working directory", warn the user: "Note: local changes were stashed. Run `git stash pop` in the skill directory to restore them."
 
-**For vendored installs** (vendored, vendored-global):
-```bash
-PARENT=$(dirname "$INSTALL_DIR")
-TMP_DIR=$(mktemp -d)
-git clone --depth 1 https://github.com/garrytan/gstack.git "$TMP_DIR/gstack"
-mv "$INSTALL_DIR" "$INSTALL_DIR.bak"
-mv "$TMP_DIR/gstack" "$INSTALL_DIR"
-cd "$INSTALL_DIR" && ./setup
-rm -rf "$INSTALL_DIR.bak" "$TMP_DIR"
-```
-
-### Step 4.5: Sync local vendored copy
-
-Use the install directory from Step 2. Check if there's also a local vendored copy that needs updating:
+### Step 4: 检查是否成功
 
 ```bash
-_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-LOCAL_GSTACK=""
-if [ -n "$_ROOT" ] && [ -d "$_ROOT/.claude/skills/gstack" ]; then
-  _RESOLVED_LOCAL=$(cd "$_ROOT/.claude/skills/gstack" && pwd -P)
-  _RESOLVED_PRIMARY=$(cd "$INSTALL_DIR" && pwd -P)
-  if [ "$_RESOLVED_LOCAL" != "$_RESOLVED_PRIMARY" ]; then
-    LOCAL_GSTACK="$_ROOT/.claude/skills/gstack"
-  fi
-fi
-echo "LOCAL_GSTACK=$LOCAL_GSTACK"
+old_version=$(cat "$install_dir/VERSION" 2>/dev/null || echo "unknown")
+new_version=$(cat VERSION 2>/dev/null || echo "unknown")
+echo "old=$old_version new=$new_version"
 ```
 
-If `LOCAL_GSTACK` is non-empty, update it by copying from the freshly-upgraded primary install (same approach as README vendored install):
-```bash
-mv "$LOCAL_GSTACK" "$LOCAL_GSTACK.bak"
-cp -Rf "$INSTALL_DIR" "$LOCAL_GSTACK"
-rm -rf "$LOCAL_GSTACK/.git"
-cd "$LOCAL_GSTACK" && ./setup
-rm -rf "$LOCAL_GSTACK.bak"
-```
-Tell user: "Also updated vendored copy at `$LOCAL_GSTACK` — commit `.claude/skills/gstack/` when you're ready."
+**如果 `$stash_output` 包含 `saved working directory` 或没有错误:**
+升级成功！
 
-If `./setup` fails, restore from backup and warn the user:
-```bash
-rm -rf "$LOCAL_GSTACK"
-mv "$LOCAL_GSTACK.bak" "$LOCAL_GSTACK"
-```
-Tell user: "Sync failed — restored previous version at `$LOCAL_GSTACK`. Run `/gstack-upgrade` manually to retry."
+**否则:**
+升级失败。恢复备份并显示错误。
 
-### Step 5: Write marker + clear cache
+### Step 5: 清理
 
 ```bash
-mkdir -p ~/.gstack
-echo "$OLD_VERSION" > ~/.gstack/just-upgraded-from
-rm -f ~/.gstack/last-update-check
-rm -f ~/.gstack/update-snoozed
+cd /
+rm -rf "$tmpdir"
 ```
 
-### Step 6: Show What's New
+### Step 6: 显示新功能
 
-Read `$INSTALL_DIR/CHANGELOG.md`. Find all version entries between the old version and the new version. Summarize as 5-7 bullets grouped by theme. Don't overwhelm — focus on user-facing changes. Skip internal refactors unless they're significant.
+读取 `$install_dir/changelog.md`。找到所有版本条目。将每个版本之间的内容分组。跳过内部 refactors 除非用户请求完整日志。使用 5-7 个 bullets 作为主要变化的摘要。
 
-Format:
+格式：
 ```
 gstack v{new} — upgraded from v{old}!
 
@@ -195,38 +134,20 @@ What's new:
 Happy shipping!
 ```
 
-### Step 7: Continue
+## 独立使用
 
-After showing What's New, continue with whatever skill the user originally invoked. The upgrade is done — no further action needed.
+当直接调用 `/gstack-upgrade` 时（不是从前置准备中）：
 
----
-
-## Standalone usage
-
-When invoked directly as `/gstack-upgrade` (not from a preamble):
-
-1. Force a fresh update check (bypass cache):
+1. 强制更新检查（绕过缓存）：
 ```bash
 ~/.claude/skills/gstack/bin/gstack-update-check --force 2>/dev/null || \
 .claude/skills/gstack/bin/gstack-update-check --force 2>/dev/null || true
 ```
-Use the output to determine if an upgrade is available.
 
-2. If `UPGRADE_AVAILABLE <old> <new>`: follow Steps 2-6 above.
+2. 如果有可用升级： 按照步骤 2-6 执行。
 
-3. If no output (primary is up to date): check for a stale local vendored copy.
+3. 如果没有输出（已是最新版本）： 告诉用户 "gstack is already up to date (v{version})."
 
-Run the Step 2 bash block above to detect the primary install type and directory (`INSTALL_TYPE` and `INSTALL_DIR`). Then run the Step 4.5 detection bash block above to check for a local vendored copy (`LOCAL_GSTACK`).
+## 依赖说明
 
-**If `LOCAL_GSTACK` is empty** (no local vendored copy): tell the user "You're already on the latest version (v{version})."
-
-**If `LOCAL_GSTACK` is non-empty**, compare versions:
-```bash
-PRIMARY_VER=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null || echo "unknown")
-LOCAL_VER=$(cat "$LOCAL_GSTACK/VERSION" 2>/dev/null || echo "unknown")
-echo "PRIMARY=$PRIMARY_VER LOCAL=$LOCAL_VER"
-```
-
-**If versions differ:** follow the Step 4.5 sync bash block above to update the local copy from the primary. Tell user: "Global v{PRIMARY_VER} is up to date. Updated local vendored copy from v{LOCAL_VER} → v{PRIMARY_VER}. Commit `.claude/skills/gstack/` when you're ready."
-
-**If versions match:** tell the user "You're on the latest version (v{PRIMARY_VER}). Global and local vendored copy are both up to date."
+此 skill 依赖 `git` 啽令。如果 git 不可用，将无法升级 vendored 安装。
