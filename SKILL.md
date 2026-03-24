@@ -2,18 +2,17 @@
 name: gstack
 version: 1.1.0
 description: |
-  Fast headless browser for QA testing and site dogfooding. Navigate pages, interact with
-  elements, verify state, diff before/after, take annotated screenshots, test responsive
-  layouts, forms, uploads, dialogs, and capture bug evidence. Use when asked to open or
-  test a site, verify a deployment, dogfood a user flow, or file a bug with screenshots.
-  Also suggest adjacent gstack skills by stage: brainstorm /office-hours; strategy
-  /plan-ceo-review; architecture /plan-eng-review; design /plan-design-review or
-  /design-consultation; auto-review /autoplan; debugging /investigate; QA /qa; code review
-  /review; visual audit /design-review; shipping /ship; docs /document-release; retro
-  /retro; second opinion /codex; prod safety /careful or /guard; scoped edits /freeze or
-  /unfreeze; gstack upgrades /gstack-upgrade. If the user opts out of suggestions, stop
-  and run gstack-config set proactive false; if they opt back in, run gstack-config set
-  proactive true.
+  用于 QA 测试和站点自测的快速无头浏览器。导航页面、交互元素、验证状态、
+  对比前后差异、拍摄带标注截图、测试响应式布局、表单、上传、对话框，
+  以及捕获 bug 证据。当被要求打开或测试站点、验证部署、体验用户流程，
+  或用截图提交 bug 时使用。
+  也可按阶段建议相邻的 gstack skill：头脑风暴 /office-hours；策略 /plan-ceo-review；
+  架构 /plan-eng-review；设计 /plan-design-review 或 /design-consultation；
+  自动审查 /autoplan；调试 /investigate；QA /qa；代码审查 /review；
+  视觉审查 /design-review；发布 /ship；文档 /document-release；复盘 /retro；
+  二次确认 /codex；生产安全 /careful 或 /guard；局部编辑 /freeze 或 /unfreeze；
+  gstack 升级 /gstack-upgrade。如果用户选择关闭建议，执行 gstack-config set proactive false；
+  如果重新开启，执行 gstack-config set proactive true。
 allowed-tools:
   - Bash
   - Read
@@ -23,7 +22,7 @@ allowed-tools:
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
-## Preamble (run first)
+## 前置准备（优先执行）
 
 ```bash
 _UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
@@ -54,200 +53,198 @@ echo '{"skill":"gstack","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basen
 for _PF in $(find ~/.gstack/analytics -maxdepth 1 -name '.pending-*' 2>/dev/null); do [ -f "$_PF" ] && ~/.claude/skills/gstack/bin/gstack-telemetry-log --event-type skill_run --skill _pending_finalize --outcome unknown --session-id "$_SESSION_ID" 2>/dev/null || true; break; done
 ```
 
-If `PROACTIVE` is `"false"`, do not proactively suggest gstack skills — only invoke
-them when the user explicitly asks. The user opted out of proactive suggestions.
+如果 `PROACTIVE` 为 `"false"`，不要主动建议 gstack skill——只在用户明确要求时才调用。
+用户已选择关闭主动建议。
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+如果输出显示 `UPGRADE_AVAILABLE <旧版本> <新版本>`：阅读 `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` 并遵循"内联升级流程"（如果已配置则自动升级，否则用 AskUserQuestion 提供 4 个选项，如果放弃则写入暂存状态）。如果显示 `JUST_UPGRADED <从> <到>`：告诉用户"正在运行 gstack v{到}（刚刚更新！）"并继续。
 
-If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
-Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
-thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
-Then offer to open the essay in their default browser:
+如果 `LAKE_INTRO` 为 `no`：在继续之前，介绍"完整性原则"。
+告诉用户："gstack 遵循**煮沸湖泊**原则——当 AI 让边际成本接近零时，总是做完整的事情。
+了解更多：https://garryslist.org/posts/boil-the-ocean"
+然后提议在默认浏览器中打开这篇文章：
 
 ```bash
 open https://garryslist.org/posts/boil-the-ocean
 touch ~/.gstack/.completeness-intro-seen
 ```
 
-Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
+只有用户同意时才运行 `open`。始终运行 `touch` 标记为已读。这只发生一次。
 
-If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+如果 `TEL_PROMPTED` 为 `no` 且 `LAKE_INTRO` 为 `yes`：在处理完湖泊介绍之后，
+询问用户关于遥测数据。使用 AskUserQuestion：
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
+> 帮助 gstack 变得更好！社区模式分享使用数据（你使用了哪些 skill、耗时多长、
+> 崩溃信息）和一个稳定的设备 ID，以便我们追踪趋势并更快修复 bug。
+> 不会发送任何代码、文件路径或仓库名称。
+> 随时可以通过 `gstack-config set telemetry off` 更改。
 
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
+选项：
+- A) 帮助 gstack 变得更好！（推荐）
+- B) 不用了，谢谢
 
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
+如果选 A：运行 `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
 
-If B: ask a follow-up AskUserQuestion:
+如果选 B：再问一个 AskUserQuestion：
 
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
+> 那匿名模式呢？我们只知道**有人**使用了 gstack——没有唯一 ID，
+> 无法关联会话。只是一个计数器，帮助我们了解是否有人在使用。
 
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
+选项：
+- A) 好的，匿名可以
+- B) 不用了，谢谢，完全关闭
 
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
+如果 B→A：运行 `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
+如果 B→B：运行 `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
 
-Always run:
+始终运行：
 ```bash
 touch ~/.gstack/.telemetry-prompted
 ```
 
-This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
+这只发生一次。如果 `TEL_PROMPTED` 为 `yes`，完全跳过这一步。
 
-## AskUserQuestion Format
+## AskUserQuestion 格式
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
+**每次 AskUserQuestion 调用都必须遵循此结构：**
+1. **重新锚定：** 说明项目、当前分支（使用前置准备输出的 `_BRANCH` 值——不要用对话历史或 gitStatus 中的任何分支）和当前计划/任务。（1-2 句话）
+2. **简化：** 用普通英语解释问题，连聪明的 16 岁孩子都能理解。不使用原始函数名、不使用内部术语、不使用实现细节。用具体的例子和类比。说它**做什么**，而不是它叫什么。
+3. **建议：** `RECOMMENDATION: 选择 [X]，因为 [一句话原因]`——始终优先选择完整选项而非捷径（见完整性原则）。为每个选项包含 `Completeness: X/10`。校准：10 = 完整实现（所有边缘情况、完全覆盖），7 = 覆盖愉快路径但跳过一些边缘，3 = 捷径 defer 重要工作。如果两个选项都是 8+，选更高的；如果一个 ≤5，标记出来。
+4. **选项：** 字母选项：`A) ... B) ... C) ...`——当选项涉及工作量时，同时显示两个刻度：`(人工: ~X / CC: ~Y)`
 
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
+假设用户已经 20 分钟没有看这个窗口了，代码也没有打开。如果你自己都需要看源码才能理解自己的解释，那解释就太复杂了。
 
-Per-skill instructions may add additional formatting rules on top of this baseline.
+各 skill 指令可以在此基础上添加额外的格式规则。
 
-## Completeness Principle — Boil the Lake
+## 完整性原则——煮沸湖泊
 
-AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
+AI 辅助编码使完整的边际成本接近零。当你呈现选项时：
 
-- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
-- **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
-- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
+- 如果选项 A 是完整实现（完全对等、所有边缘情况、100% 覆盖）而选项 B 是节省少量工作的捷径——**始终推荐 A**。用 CC+gstack，70 行和 150 行之间的差异毫无意义。"差不多就行"在"完整"只需多花几分钟的情况下是错误的直觉。
+- **湖泊 vs 海洋：** "湖泊"是可以煮沸的——模块 100% 测试覆盖、完整功能实现、处理所有边缘情况、完整错误路径。"海洋"则不是——从零重写整个系统、向无法控制的依赖添加功能、花费多个季度的平台迁移。推荐煮湖。把海洋标记为超出范围。
+- **估算工作量时**，始终显示两个刻度：人工团队时间和 CC+gstack 时间。压缩比因任务类型而异——参考：
 
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
-| Test writing | 1 day | 15 min | ~50x |
-| Feature implementation | 1 week | 30 min | ~30x |
-| Bug fix + regression test | 4 hours | 15 min | ~20x |
-| Architecture / design | 2 days | 4 hours | ~5x |
-| Research / exploration | 1 day | 3 hours | ~3x |
+| 任务类型 | 人工团队 | CC+gstack | 压缩比 |
+|-----------|-----------|-----------|--------|
+| 样板代码 / 脚手架 | 2 天 | 15 分钟 | ~100x |
+| 写测试 | 1 天 | 15 分钟 | ~50x |
+| 功能实现 | 1 周 | 30 分钟 | ~30x |
+| Bug 修复 + 回归测试 | 4 小时 | 15 分钟 | ~20x |
+| 架构 / 设计 | 2 天 | 4 小时 | ~5x |
+| 研究 / 探索 | 1 天 | 3 小时 | ~3x |
 
-- This principle applies to test coverage, error handling, documentation, edge cases, and feature completeness. Don't skip the last 10% to "save time" — with AI, that 10% costs seconds.
+- 此原则适用于测试覆盖、错误处理、文档、边缘情况和功能完整性。不要跳过最后 10% 来"节省时间"——有了 AI，那 10% 只需几秒钟。
 
-**Anti-patterns — DON'T do this:**
-- BAD: "Choose B — it covers 90% of the value with less code." (If A is only 70 lines more, choose A.)
-- BAD: "We can skip edge case handling to save time." (Edge case handling costs minutes with CC.)
-- BAD: "Let's defer test coverage to a follow-up PR." (Tests are the cheapest lake to boil.)
-- BAD: Quoting only human-team effort: "This would take 2 weeks." (Say: "2 weeks human / ~1 hour CC.")
+**反模式——不要这样做：**
+- 不好："选 B——它以更少代码覆盖了 90% 的价值。"（如果 A 只多 70 行，选 A。）
+- 不好："我们可以跳过边缘情况处理来节省时间。"（用 CC 处理边缘情况只需几分钟。）
+- 不好："我们把测试覆盖 defer 到后续 PR。"（测试是最便宜的湖，值得煮。）
+- 不好：只引用人工团队工作量："这需要 2 周。"（要说："2 周人工 / ~1 小时 CC"。）
 
-## Repo Ownership Mode — See Something, Say Something
+## 仓库所有权模式——看到就说
 
-`REPO_MODE` from the preamble tells you who owns issues in this repo:
+前置准备中的 `REPO_MODE` 告诉你谁负责这个仓库的问题：
 
-- **`solo`** — One person does 80%+ of the work. They own everything. When you notice issues outside the current branch's changes (test failures, deprecation warnings, security advisories, linting errors, dead code, env problems), **investigate and offer to fix proactively**. The solo dev is the only person who will fix it. Default to action.
-- **`collaborative`** — Multiple active contributors. When you notice issues outside the branch's changes, **flag them via AskUserQuestion** — it may be someone else's responsibility. Default to asking, not fixing.
-- **`unknown`** — Treat as collaborative (safer default — ask before fixing).
+- **`solo`** — 一个人做了 80%+ 的工作。他负责一切。当你注意到当前分支变更之外的问题（测试失败、弃用警告、安全公告、lint 错误、死代码、环境问题），**主动调查并提出修复**。solo 开发者是唯一会修的人。默认采取行动。
+- **`collaborative`** — 多个活跃贡献者。当你注意到分支变更之外的问题，**通过 AskUserQuestion 标记**——这可能是别人的责任。默认询问，而不是修复。
+- **`unknown`** — 按 collaborative 处理（更安全的默认值——修复前先问）。
 
-**See Something, Say Something:** Whenever you notice something that looks wrong during ANY workflow step — not just test failures — flag it briefly. One sentence: what you noticed and its impact. In solo mode, follow up with "Want me to fix it?" In collaborative mode, just flag it and move on.
+**看到就说：** 每当在任何工作流步骤中注意到看起来不对的地方——不仅仅是测试失败——简要标记。一句话：你注意到了什么以及它的影响。在 solo 模式下，后续跟进"要我来修吗？"在 collaborative 模式下，只标记然后继续。
 
-Never let a noticed issue silently pass. The whole point is proactive communication.
+永远不要让注意到的问题无声地过去。主动沟通才是关键。
 
-## Search Before Building
+## 构建前先搜索
 
-Before building infrastructure, unfamiliar patterns, or anything the runtime might have a built-in — **search first.** Read `~/.claude/skills/gstack/ETHOS.md` for the full philosophy.
+在构建基础设施、不熟悉的模式或运行时可能已有内置的任何东西之前——**先搜索。** 阅读 `~/.claude/skills/gstack/ETHOS.md` 了解完整理念。
 
-**Three layers of knowledge:**
-- **Layer 1** (tried and true — in distribution). Don't reinvent the wheel. But the cost of checking is near-zero, and once in a while, questioning the tried-and-true is where brilliance occurs.
-- **Layer 2** (new and popular — search for these). But scrutinize: humans are subject to mania. Search results are inputs to your thinking, not answers.
-- **Layer 3** (first principles — prize these above all). Original observations derived from reasoning about the specific problem. The most valuable of all.
+**三层知识：**
+- **第一层**（久经考验——在发行版中）。不要重复造轮子。但检查的成本接近零，偶尔质疑久经考验的知识可能会产生出色的想法。
+- **第二层**（新的和流行的——搜索这些）。但要仔细审视：人类容易陷入狂热。搜索结果是你思考的输入，不是答案。
+- **第三层**（第一性原理——最重视这些）。从对具体问题的推理中得出的原创观察。这是最有价值的。
 
-**Eureka moment:** When first-principles reasoning reveals conventional wisdom is wrong, name it:
-"EUREKA: Everyone does X because [assumption]. But [evidence] shows this is wrong. Y is better because [reasoning]."
+**尤里卡时刻：** 当第一性原理推理揭示传统智慧是错误的，给它命名：
+"EUREKA：每个人都做 X 因为 [假设]。但 [证据] 表明这是错的。Y 更好因为 [推理]。"
 
-Log eureka moments:
+记录尤里卡时刻：
 ```bash
 jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg branch "$(git branch --show-current 2>/dev/null)" --arg insight "ONE_LINE_SUMMARY" '{ts:$ts,skill:$skill,branch:$branch,insight:$insight}' >> ~/.gstack/analytics/eureka.jsonl 2>/dev/null || true
 ```
-Replace SKILL_NAME and ONE_LINE_SUMMARY. Runs inline — don't stop the workflow.
+替换 SKILL_NAME 和 ONE_LINE_SUMMARY。行内运行——不要停止工作流。
 
-**WebSearch fallback:** If WebSearch is unavailable, skip the search step and note: "Search unavailable — proceeding with in-distribution knowledge only."
+**WebSearch 备用：** 如果 WebSearch 不可用，跳过搜索步骤并注明："Search unavailable — proceeding with in-distribution knowledge only."
 
-## Contributor Mode
+## 贡献者模式
 
-If `_CONTRIB` is `true`: you are in **contributor mode**. You're a gstack user who also helps make it better.
+如果 `_CONTRIB` 为 `true`：你处于**贡献者模式**。你是 gstack 用户，也在帮助它变得更好。
 
-**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
+**在每个主要工作流步骤结束时**（不是每个单独命令之后），反思你使用的 gstack 工具。评分 0 到 10。如果不是 10，想想为什么。如果 gstack 代码或 skill markdown 有明显可操作的 bug 或有趣可以做得更好的地方——提交现场报告。也许我们的贡献者会帮助我们变得更好！
 
-**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
+**校准——这是标准：** 例如，`$B js "await fetch(...)"` 曾经因为 `SyntaxError: await is only valid in async functions` 失败，因为 gstack 没有在异步上下文中包装表达式。这是小的，但输入是合理的，gstack 应该处理——这类值得提交的东西。
 
-**NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
+**不值得提交：** 用户的 app bug、用户 URL 的网络错误、用户站点的认证失败、用户自己的 JS 逻辑 bug。
 
-**To file:** write `~/.gstack/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
+**值得提交：** 写 `~/.gstack/contributor-logs/{slug}.md`，包含**所有以下部分**（不要截断——包含每个部分直到日期/版本页脚）：
 
 ```
-# {Title}
+# {标题}
 
-Hey gstack team — ran into this while using /{skill-name}:
+嘿 gstack 团队——我在使用 /{skill-name} 时遇到了这个：
 
-**What I was trying to do:** {what the user/agent was attempting}
-**What happened instead:** {what actually happened}
-**My rating:** {0-10} — {one sentence on why it wasn't a 10}
+**我尝试做的事：** {用户/代理尝试做什么}
+**实际发生的：** {实际发生了什么}
+**我的评分：** {0-10} — {一句话说明为什么不是 10}
 
-## Steps to reproduce
-1. {step}
+## 复现步骤
+1. {步骤}
 
-## Raw output
+## 原始输出
 ```
-{paste the actual error or unexpected output here}
-```
-
-## What would make this a 10
-{one sentence: what gstack should have done differently}
-
-**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
+{paste 实际错误或意外输出 here}
 ```
 
-Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
+## 怎样才能达到 10
+{一句话：gstack 应该如何不同地做}
 
-## Completion Status Protocol
+**日期：** {YYYY-MM-DD} | **版本：** {gstack 版本} | **Skill：** /{skill}
+```
 
-When completing a skill workflow, report status using one of:
-- **DONE** — All steps completed successfully. Evidence provided for each claim.
-- **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
-- **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
-- **NEEDS_CONTEXT** — Missing information required to continue. State exactly what you need.
+Slug：小写、连字符、最多 60 个字符（例如 `browse-js-no-await`）。如果文件已存在则跳过。每个会话最多 3 份报告。行内提交并继续——不要停止工作流。告诉用户："已提交 gstack 现场报告：{标题}"
 
-### Escalation
+## 完成状态协议
 
-It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
+完成 skill 工作流时，使用以下之一报告状态：
+- **DONE** — 所有步骤成功完成。每个声明都提供了证据。
+- **DONE_WITH_CONCERNS** — 完成，但有用户应该知道的问题。列出每个问题。
+- **BLOCKED** — 无法继续。说明阻塞内容和已尝试的方法。
+- **NEEDS_CONTEXT** — 缺少继续所需的信息。准确说明需要什么。
 
-Bad work is worse than no work. You will not be penalized for escalating.
-- If you have attempted a task 3 times without success, STOP and escalate.
-- If you are uncertain about a security-sensitive change, STOP and escalate.
-- If the scope of work exceeds what you can verify, STOP and escalate.
+### 升级
 
-Escalation format:
+说"这对我来说太难了"或"我对这个结果没有信心"永远是可以的。
+
+糟糕的工作比没有工作更糟糕。你不会因为升级而受到惩罚。
+- 如果你已经尝试任务 3 次都没有成功，停止并升级。
+- 如果你对敏感变更不确定，停止并升级。
+- 如果工作量超出你能验证的范围，停止并升级。
+
+升级格式：
 ```
 STATUS: BLOCKED | NEEDS_CONTEXT
-REASON: [1-2 sentences]
-ATTEMPTED: [what you tried]
-RECOMMENDATION: [what the user should do next]
+REASON: [1-2 句话]
+ATTEMPTED: [你尝试了什么]
+RECOMMENDATION: [用户下一步应该做什么]
 ```
 
-## Telemetry (run last)
+## 遥测数据（最后运行）
 
-After the skill workflow completes (success, error, or abort), log the telemetry event.
-Determine the skill name from the `name:` field in this file's YAML frontmatter.
-Determine the outcome from the workflow result (success if completed normally, error
-if it failed, abort if the user interrupted).
+skill 工作流完成后（成功、错误或中止），记录遥测事件。
+从本文件 YAML frontmatter 的 `name:` 字段确定 skill 名称。
+从工作流结果确定结果（如果正常完成则为 success，如果失败则为 error，如果用户中断则为 abort）。
 
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This command writes telemetry to
-`~/.gstack/analytics/` (user config directory, not project files). The skill
-preamble already writes to the same directory — this is the same pattern.
-Skipping this command loses session duration and outcome data.
+**计划模式例外——始终运行：** 此命令将遥测写入
+`~/.gstack/analytics/`（用户配置目录，不是项目文件）。skill 前置准备已经写入同一目录——这是相同的模式。
+跳过此命令会丢失会话时长和结果数据。
 
-Run this bash:
+运行此 bash：
 
 ```bash
 _TEL_END=$(date +%s)
@@ -258,57 +255,52 @@ rm -f ~/.gstack/analytics/.pending-"$_SESSION_ID" 2>/dev/null || true
   --used-browse "USED_BROWSE" --session-id "$_SESSION_ID" 2>/dev/null &
 ```
 
-Replace `SKILL_NAME` with the actual skill name from frontmatter, `OUTCOME` with
-success/error/abort, and `USED_BROWSE` with true/false based on whether `$B` was used.
-If you cannot determine the outcome, use "unknown". This runs in the background and
-never blocks the user.
+用实际 skill 名称替换 `SKILL_NAME`，用 success/error/abort 替换 `OUTCOME`，
+根据是否使用了 `$B` 替换 `USED_BROWSE` 为 true/false。如果无法确定结果，使用"unknown"。
+这在后台运行，永远不会阻塞用户。
 
-## Plan Status Footer
+## 计划状态页脚
 
-When you are in plan mode and about to call ExitPlanMode:
+当你在计划模式中即将调用 ExitPlanMode 时：
 
-1. Check if the plan file already has a `## GSTACK REVIEW REPORT` section.
-2. If it DOES — skip (a review skill already wrote a richer report).
-3. If it does NOT — run this command:
+1. 检查计划文件是否已有 `## GSTACK REVIEW REPORT` 部分。
+2. 如果有——跳过（审查 skill 已经写了更丰富的报告）。
+3. 如果没有——运行此命令：
 
-\`\`\`bash
+```bash
 ~/.claude/skills/gstack/bin/gstack-review-read
-\`\`\`
+```
 
-Then write a `## GSTACK REVIEW REPORT` section to the end of the plan file:
+然后将 `## GSTACK REVIEW REPORT` 部分写入计划文件末尾：
 
-- If the output contains review entries (JSONL lines before `---CONFIG---`): format the
-  standard report table with runs/status/findings per skill, same format as the review
-  skills use.
-- If the output is `NO_REVIEWS` or empty: write this placeholder table:
+- 如果输出包含审查条目（`---CONFIG---` 之前的 JSONL 行）：用每次运行/状态/发现的标准报告表格式化，与审查 skill 使用的格式相同。
+- 如果输出为 `NO_REVIEWS` 或为空：写入此占位符表：
 
-\`\`\`markdown
+```markdown
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | 0 | — | — |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | 0 | — | — |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | 0 | — | — |
+| 审查 | 触发原因 | 为什么 | 运行次数 | 状态 | 发现 |
+|--------|---------|-----|------|--------|------|
+| CEO 审查 | `/plan-ceo-review` | 范围与策略 | 0 | — | — |
+| Codex 审查 | `/codex review` | 独立的第二意见 | 0 | — | — |
+| 工程审查 | `/plan-eng-review` | 架构与测试（必需） | 0 | — | — |
+| 设计审查 | `/plan-design-review` | UI/UX 差距 | 0 | — | — |
 
-**VERDICT:** NO REVIEWS YET — run \`/autoplan\` for full review pipeline, or individual reviews above.
-\`\`\`
+**结论：** 尚无审查——运行 `/autoplan` 获取完整审查流程，或运行上方的各个审查。
+```
 
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This writes to the plan file, which is the one
-file you are allowed to edit in plan mode. The plan file review report is part of the
-plan's living status.
+**计划模式例外——始终运行：** 这会写入计划文件，这是你在计划模式下唯一允许编辑的文件。
+计划文件审查报告是计划活动状态的一部分。
 
-If `PROACTIVE` is `false`: do NOT proactively suggest other gstack skills during this session.
-Only run skills the user explicitly invokes. This preference persists across sessions via
-`gstack-config`.
+如果 `PROACTIVE` 为 `false`：在本会话期间不要主动建议其他 gstack skill。
+只运行用户明确调用的 skill。此偏好通过 `gstack-config` 跨会话持久化。
 
-# gstack browse: QA Testing & Dogfooding
+# gstack browse：QA 测试与自测
 
-Persistent headless Chromium. First call auto-starts (~3s), then ~100-200ms per command.
-Auto-shuts down after 30 min idle. State persists between calls (cookies, tabs, sessions).
+持久化无头 Chromium。首次调用自动启动（约 3 秒），之后每次命令约 100-200ms。
+空闲 30 分钟后自动关闭。状态在调用之间保持（cookies、标签页、会话）。
 
-## SETUP (run this check BEFORE any browse command)
+## 设置（在任何 browse 命令之前运行此检查）
 
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -322,105 +314,105 @@ else
 fi
 ```
 
-If `NEEDS_SETUP`:
-1. Tell the user: "gstack browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
-2. Run: `cd <SKILL_DIR> && ./setup`
-3. If `bun` is not installed: `curl -fsSL https://bun.sh/install | bash`
+如果显示 `NEEDS_SETUP`：
+1. 告诉用户："gstack browse 需要一次性构建（约 10 秒）。可以继续吗？"然后停止并等待。
+2. 运行：`cd <SKILL_DIR> && ./setup`
+3. 如果没有安装 `bun`：`curl -fsSL https://bun.sh/install | bash`
 
-## IMPORTANT
+## 重要提示
 
-- Use the compiled binary via Bash: `$B <command>`
-- NEVER use `mcp__claude-in-chrome__*` tools. They are slow and unreliable.
-- Browser persists between calls — cookies, login sessions, and tabs carry over.
-- Dialogs (alert/confirm/prompt) are auto-accepted by default — no browser lockup.
-- **Show screenshots:** After `$B screenshot`, `$B snapshot -a -o`, or `$B responsive`, always use the Read tool on the output PNG(s) so the user can see them. Without this, screenshots are invisible.
+- 通过 Bash 使用编译好的二进制文件：`$B <command>`
+- 永远不要使用 `mcp__claude-in-chrome__*` 工具。它们慢且不可靠。
+- 浏览器在调用之间保持状态——cookies、登录会话和标签页会保留。
+- 对话框（alert/confirm/prompt）默认自动接受——浏览器不会卡住。
+- **显示截图：** 在 `$B screenshot`、`$B snapshot -a -o` 或 `$B responsive` 之后，始终使用 Read 工具读取输出 PNG，以便用户能看到。没有这个，截图是看不见的。
 
-## QA Workflows
+## QA 工作流
 
-### Test a user flow (login, signup, checkout, etc.)
+### 测试用户流程（登录、注册、结账等）
 
 ```bash
-# 1. Go to the page
+# 1. 前往页面
 $B goto https://app.example.com/login
 
-# 2. See what's interactive
+# 2. 查看哪些可交互
 $B snapshot -i
 
-# 3. Fill the form using refs
+# 3. 使用 refs 填写表单
 $B fill @e3 "test@example.com"
 $B fill @e4 "password123"
 $B click @e5
 
-# 4. Verify it worked
-$B snapshot -D              # diff shows what changed after clicking
-$B is visible ".dashboard"  # assert the dashboard appeared
+# 4. 验证结果
+$B snapshot -D              # diff 显示点击后的变化
+$B is visible ".dashboard"  # 断言仪表盘出现了
 $B screenshot /tmp/after-login.png
 ```
 
-### Verify a deployment / check prod
+### 验证部署 / 检查生产环境
 
 ```bash
 $B goto https://yourapp.com
-$B text                          # read the page — does it load?
-$B console                       # any JS errors?
-$B network                       # any failed requests?
-$B js "document.title"           # correct title?
-$B is visible ".hero-section"    # key elements present?
+$B text                          # 读取页面——加载了吗？
+$B console                       # 有 JS 错误吗？
+$B network                       # 有失败的请求吗？
+$B js "document.title"           # 标题正确吗？
+$B is visible ".hero-section"    # 关键元素存在吗？
 $B screenshot /tmp/prod-check.png
 ```
 
-### Dogfood a feature end-to-end
+### 端到端体验功能
 
 ```bash
-# Navigate to the feature
+# 导航到功能
 $B goto https://app.example.com/new-feature
 
-# Take annotated screenshot — shows every interactive element with labels
+# 拍摄带标注截图——显示每个带标签的交互元素
 $B snapshot -i -a -o /tmp/feature-annotated.png
 
-# Find ALL clickable things (including divs with cursor:pointer)
+# 找到所有可点击的东西（包括 cursor:pointer 的 div）
 $B snapshot -C
 
-# Walk through the flow
-$B snapshot -i          # baseline
-$B click @e3            # interact
-$B snapshot -D          # what changed? (unified diff)
+# 走完流程
+$B snapshot -i          # 基线
+$B click @e3            # 交互
+$B snapshot -D          # 哪些变了？（统一 diff）
 
-# Check element states
+# 检查元素状态
 $B is visible ".success-toast"
 $B is enabled "#next-step-btn"
 $B is checked "#agree-checkbox"
 
-# Check console for errors after interactions
+# 交互后检查控制台错误
 $B console
 ```
 
-### Test responsive layouts
+### 测试响应式布局
 
 ```bash
-# Quick: 3 screenshots at mobile/tablet/desktop
+# 快速：移动/平板/桌面 3 张截图
 $B goto https://yourapp.com
 $B responsive /tmp/layout
 
-# Manual: specific viewport
+# 手动：特定视口
 $B viewport 375x812     # iPhone
 $B screenshot /tmp/mobile.png
-$B viewport 1440x900    # Desktop
+$B viewport 1440x900    # 桌面
 $B screenshot /tmp/desktop.png
 
-# Element screenshot (crop to specific element)
+# 元素截图（裁剪到特定元素）
 $B screenshot "#hero-banner" /tmp/hero.png
 $B snapshot -i
 $B screenshot @e3 /tmp/button.png
 
-# Region crop
+# 区域裁剪
 $B screenshot --clip 0,0,800,600 /tmp/above-fold.png
 
-# Viewport only (no scroll)
+# 仅视口（不滚动）
 $B screenshot --viewport /tmp/viewport.png
 ```
 
-### Test file upload
+### 测试文件上传
 
 ```bash
 $B goto https://app.example.com/upload
@@ -430,59 +422,59 @@ $B is visible ".upload-success"
 $B screenshot /tmp/upload-result.png
 ```
 
-### Test forms with validation
+### 测试带验证的表单
 
 ```bash
 $B goto https://app.example.com/form
 $B snapshot -i
 
-# Submit empty — check validation errors appear
-$B click @e10                        # submit button
-$B snapshot -D                       # diff shows error messages appeared
+# 提交空表单——检查验证错误出现
+$B click @e10                        # 提交按钮
+$B snapshot -D                       # diff 显示错误信息出现
 $B is visible ".error-message"
 
-# Fill and resubmit
+# 填写并重新提交
 $B fill @e3 "valid input"
 $B click @e10
-$B snapshot -D                       # diff shows errors gone, success state
+$B snapshot -D                       # diff 显示错误消失，成功状态
 ```
 
-### Test dialogs (delete confirmations, prompts)
+### 测试对话框（删除确认、提示）
 
 ```bash
-# Set up dialog handling BEFORE triggering
-$B dialog-accept              # will auto-accept next alert/confirm
-$B click "#delete-button"     # triggers confirmation dialog
-$B dialog                     # see what dialog appeared
-$B snapshot -D                # verify the item was deleted
+# 在触发之前设置对话框处理
+$B dialog-accept              # 将自动接受下一个 alert/confirm
+$B click "#delete-button"     # 触发确认对话框
+$B dialog                     # 查看出现了什么对话框
+$B snapshot -D                # 验证项目被删除
 
-# For prompts that need input
-$B dialog-accept "my answer"  # accept with text
-$B click "#rename-button"     # triggers prompt
+# 对于需要输入的提示
+$B dialog-accept "my answer"  # 带文本接受
+$B click "#rename-button"      # 触发提示
 ```
 
-### Test authenticated pages (import real browser cookies)
+### 测试需要认证的页面（导入真实浏览器 cookies）
 
 ```bash
-# Import cookies from your real browser (opens interactive picker)
+# 从真实浏览器导入 cookies（打开交互式选择器）
 $B cookie-import-browser
 
-# Or import a specific domain directly
+# 或直接导入特定域名
 $B cookie-import-browser comet --domain .github.com
 
-# Now test authenticated pages
+# 现在测试需要认证的页面
 $B goto https://github.com/settings/profile
 $B snapshot -i
 $B screenshot /tmp/github-profile.png
 ```
 
-### Compare two pages / environments
+### 对比两个页面 / 环境
 
 ```bash
 $B diff https://staging.app.com https://prod.app.com
 ```
 
-### Multi-step chain (efficient for long flows)
+### 多步骤链（长流程的高效方式）
 
 ```bash
 echo '[
@@ -496,173 +488,173 @@ echo '[
 ]' | $B chain
 ```
 
-## Quick Assertion Patterns
+## 快速断言模式
 
 ```bash
-# Element exists and is visible
+# 元素存在且可见
 $B is visible ".modal"
 
-# Button is enabled/disabled
+# 按钮可用/不可用
 $B is enabled "#submit-btn"
 $B is disabled "#submit-btn"
 
-# Checkbox state
+# 复选框状态
 $B is checked "#agree"
 
-# Input is editable
+# 输入框可编辑
 $B is editable "#name-field"
 
-# Element has focus
+# 元素获得焦点
 $B is focused "#search-input"
 
-# Page contains text
+# 页面包含文本
 $B js "document.body.textContent.includes('Success')"
 
-# Element count
+# 元素数量
 $B js "document.querySelectorAll('.list-item').length"
 
-# Specific attribute value
-$B attrs "#logo"    # returns all attributes as JSON
+# 特定属性值
+$B attrs "#logo"    # 以 JSON 返回所有属性
 
-# CSS property
+# CSS 属性
 $B css ".button" "background-color"
 ```
 
-## Snapshot System
+## 快照系统
 
-The snapshot is your primary tool for understanding and interacting with pages.
+快照是你理解和交互页面的主要工具。
 
 ```
--i        --interactive           Interactive elements only (buttons, links, inputs) with @e refs
--c        --compact               Compact (no empty structural nodes)
--d <N>    --depth                 Limit tree depth (0 = root only, default: unlimited)
--s <sel>  --selector              Scope to CSS selector
--D        --diff                  Unified diff against previous snapshot (first call stores baseline)
--a        --annotate              Annotated screenshot with red overlay boxes and ref labels
--o <path> --output                Output path for annotated screenshot (default: <temp>/browse-annotated.png)
--C        --cursor-interactive    Cursor-interactive elements (@c refs — divs with pointer, onclick)
+-i        --interactive           仅交互元素（按钮、链接、输入框），带 @e refs
+-c        --compact               紧凑（无空结构节点）
+-d <N>    --depth                 限制树深度（0 = 仅根，默认：无限）
+-s <sel>  --selector              作用域限定为 CSS 选择器
+-D        --diff                  与前一个快照的统一 diff（首次调用存储基线）
+-a        --annotate              带红色覆盖框和 ref 标签的标注截图
+-o <path> --output                标注截图输出路径（默认：<temp>/browse-annotated.png）
+-C        --cursor-interactive    光标可交互元素（@c refs——带 pointer 光标和 onclick 的 div）
 ```
 
-All flags can be combined freely. `-o` only applies when `-a` is also used.
-Example: `$B snapshot -i -a -C -o /tmp/annotated.png`
+所有标志可以自由组合。`-o` 仅在同时使用 `-a` 时适用。
+示例：`$B snapshot -i -a -C -o /tmp/annotated.png`
 
-**Ref numbering:** @e refs are assigned sequentially (@e1, @e2, ...) in tree order.
-@c refs from `-C` are numbered separately (@c1, @c2, ...).
+**Ref 编号：** @e refs 按树顺序顺序分配（@e1, @e2, ...）。
+来自 `-C` 的 @c refs 单独编号（@c1, @c2, ...）。
 
-After snapshot, use @refs as selectors in any command:
+快照后，使用 @refs 作为选择器：
 ```bash
 $B click @e3       $B fill @e4 "value"     $B hover @e1
 $B html @e2        $B css @e5 "color"      $B attrs @e6
-$B click @c1       # cursor-interactive ref (from -C)
+$B click @c1       # 光标可交互 ref（来自 -C）
 ```
 
-**Output format:** indented accessibility tree with @ref IDs, one element per line.
+**输出格式：** 带 @ref ID 的缩进可访问性树，每个元素一行。
 ```
   @e1 [heading] "Welcome" [level=1]
   @e2 [textbox] "Email"
   @e3 [button] "Submit"
 ```
 
-Refs are invalidated on navigation — run `snapshot` again after `goto`.
+导航后 refs 失效——在 `goto` 后再次运行 `snapshot`。
 
-## Command Reference
+## 命令参考
 
-### Navigation
-| Command | Description |
+### 导航
+| 命令 | 描述 |
 |---------|-------------|
-| `back` | History back |
-| `forward` | History forward |
-| `goto <url>` | Navigate to URL |
-| `reload` | Reload page |
-| `url` | Print current URL |
+| `back` | 历史后退 |
+| `forward` | 历史前进 |
+| `goto <url>` | 导航到 URL |
+| `reload` | 重新加载页面 |
+| `url` | 打印当前 URL |
 
-### Reading
-| Command | Description |
+### 读取
+| 命令 | 描述 |
 |---------|-------------|
-| `accessibility` | Full ARIA tree |
-| `forms` | Form fields as JSON |
-| `html [selector]` | innerHTML of selector (throws if not found), or full page HTML if no selector given |
-| `links` | All links as "text → href" |
-| `text` | Cleaned page text |
+| `accessibility` | 完整 ARIA 树 |
+| `forms` | 表单字段（JSON 格式） |
+| `html [selector]` | 选择器的 innerHTML（未找到则抛出），无选择器则返回完整页面 HTML |
+| `links` | 所有链接，格式为 "text → href" |
+| `text` | 清理后的页面文本 |
 
-### Interaction
-| Command | Description |
+### 交互
+| 命令 | 描述 |
 |---------|-------------|
-| `click <sel>` | Click element |
-| `cookie <name>=<value>` | Set cookie on current page domain |
-| `cookie-import <json>` | Import cookies from JSON file |
-| `cookie-import-browser [browser] [--domain d]` | Import cookies from Comet, Chrome, Arc, Brave, or Edge (opens picker, or use --domain for direct import) |
-| `dialog-accept [text]` | Auto-accept next alert/confirm/prompt. Optional text is sent as the prompt response |
-| `dialog-dismiss` | Auto-dismiss next dialog |
-| `fill <sel> <val>` | Fill input |
-| `header <name>:<value>` | Set custom request header (colon-separated, sensitive values auto-redacted) |
-| `hover <sel>` | Hover element |
-| `press <key>` | Press key — Enter, Tab, Escape, ArrowUp/Down/Left/Right, Backspace, Delete, Home, End, PageUp, PageDown, or modifiers like Shift+Enter |
-| `scroll [sel]` | Scroll element into view, or scroll to page bottom if no selector |
-| `select <sel> <val>` | Select dropdown option by value, label, or visible text |
-| `type <text>` | Type into focused element |
-| `upload <sel> <file> [file2...]` | Upload file(s) |
-| `useragent <string>` | Set user agent |
-| `viewport <WxH>` | Set viewport size |
-| `wait <sel|--networkidle|--load>` | Wait for element, network idle, or page load (timeout: 15s) |
+| `click <sel>` | 点击元素 |
+| `cookie <name>=<value>` | 在当前页面域名设置 cookie |
+| `cookie-import <json>` | 从 JSON 文件导入 cookies |
+| `cookie-import-browser [browser] [--domain d]` | 从 Comet、Chrome、Arc、Brave 或 Edge 导入 cookies（打开选择器，或用 --domain 直接导入） |
+| `dialog-accept [text]` | 自动接受下一个 alert/confirm/prompt。可选文本作为 prompt 响应发送 |
+| `dialog-dismiss` | 自动关闭下一个对话框 |
+| `fill <sel> <val>` | 填写输入框 |
+| `header <name>:<value>` | 设置自定义请求头（冒号分隔，敏感值自动编辑） |
+| `hover <sel>` | 悬停在元素上 |
+| `press <key>` | 按键——Enter、Tab、Escape、ArrowUp/Down/Left/Right、Backspace、Delete、Home、End、PageUp、PageDown，或修饰符如 Shift+Enter |
+| `scroll [sel]` | 将元素滚动到视口，或如果没有选择器则滚动到页面底部 |
+| `select <sel> <val>` | 通过 value、label 或可见文本选择下拉选项 |
+| `type <text>` | 键入到焦点元素 |
+| `upload <sel> <file> [file2...]` | 上传文件 |
+| `useragent <string>` | 设置 user agent |
+| `viewport <WxH>` | 设置视口大小 |
+| `wait <sel|--networkidle|--load>` | 等待元素、网络空闲或页面加载（超时：15s） |
 
-### Inspection
-| Command | Description |
+### 检查
+| 命令 | 描述 |
 |---------|-------------|
-| `attrs <sel|@ref>` | Element attributes as JSON |
-| `console [--clear|--errors]` | Console messages (--errors filters to error/warning) |
-| `cookies` | All cookies as JSON |
-| `css <sel> <prop>` | Computed CSS value |
-| `dialog [--clear]` | Dialog messages |
-| `eval <file>` | Run JavaScript from file and return result as string (path must be under /tmp or cwd) |
-| `is <prop> <sel>` | State check (visible/hidden/enabled/disabled/checked/editable/focused) |
-| `js <expr>` | Run JavaScript expression and return result as string |
-| `network [--clear]` | Network requests |
-| `perf` | Page load timings |
-| `storage [set k v]` | Read all localStorage + sessionStorage as JSON, or set <key> <value> to write localStorage |
+| `attrs <sel|@ref>` | 元素属性（JSON 格式） |
+| `console [--clear|--errors]` | 控制台消息（--errors 过滤为 error/warning） |
+| `cookies` | 所有 cookies（JSON 格式） |
+| `css <sel> <prop>` | 计算后的 CSS 值 |
+| `dialog [--clear]` | 对话框消息 |
+| `eval <file>` | 从文件运行 JavaScript 并将结果作为字符串返回（路径必须在 /tmp 或 cwd 下） |
+| `is <prop> <sel>` | 状态检查（visible/hidden/enabled/disabled/checked/editable/focused） |
+| `js <expr>` | 运行 JavaScript 表达式并将结果作为字符串返回 |
+| `network [--clear]` | 网络请求 |
+| `perf` | 页面加载计时 |
+| `storage [set k v]` | 读取所有 localStorage + sessionStorage（JSON），或设置 <key> <value> 来写入 localStorage |
 
-### Visual
-| Command | Description |
+### 视觉
+| 命令 | 描述 |
 |---------|-------------|
-| `diff <url1> <url2>` | Text diff between pages |
-| `pdf [path]` | Save as PDF |
-| `responsive [prefix]` | Screenshots at mobile (375x812), tablet (768x1024), desktop (1280x720). Saves as {prefix}-mobile.png etc. |
-| `screenshot [--viewport] [--clip x,y,w,h] [selector|@ref] [path]` | Save screenshot (supports element crop via CSS/@ref, --clip region, --viewport) |
+| `diff <url1> <url2>` | 两个页面之间的文本 diff |
+| `pdf [path]` | 保存为 PDF |
+| `responsive [prefix]` | 移动端（375x812）、平板（768x1024）、桌面（1280x720）截图。保存为 {prefix}-mobile.png 等 |
+| `screenshot [--viewport] [--clip x,y,w,h] [selector|@ref] [path]` | 保存截图（支持通过 CSS/@ref 裁剪元素、--clip 区域、--viewport） |
 
-### Snapshot
-| Command | Description |
+### 快照
+| 命令 | 描述 |
 |---------|-------------|
-| `snapshot [flags]` | Accessibility tree with @e refs for element selection. Flags: -i interactive only, -c compact, -d N depth limit, -s sel scope, -D diff vs previous, -a annotated screenshot, -o path output, -C cursor-interactive @c refs |
+| `snapshot [flags]` | 带 @e refs 的可访问性树，用于元素选择。标志：-i 仅交互、-c 紧凑、-d N 深度限制、-s sel 作用域、-D 与前一个 diff、-a 标注截图、-o 路径输出、-C 光标可交互 @c refs |
 
 ### Meta
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `chain` | Run commands from JSON stdin. Format: [["cmd","arg1",...],...] |
+| `chain` | 从 JSON stdin 运行命令。格式：[["cmd","arg1",...],...] |
 
-### Tabs
-| Command | Description |
+### 标签页
+| 命令 | 描述 |
 |---------|-------------|
-| `closetab [id]` | Close tab |
-| `newtab [url]` | Open new tab |
-| `tab <id>` | Switch to tab |
-| `tabs` | List open tabs |
+| `closetab [id]` | 关闭标签页 |
+| `newtab [url]` | 打开新标签页 |
+| `tab <id>` | 切换到标签页 |
+| `tabs` | 列出打开的标签页 |
 
-### Server
-| Command | Description |
+### 服务器
+| 命令 | 描述 |
 |---------|-------------|
-| `handoff [message]` | Open visible Chrome at current page for user takeover |
-| `restart` | Restart server |
-| `resume` | Re-snapshot after user takeover, return control to AI |
-| `status` | Health check |
-| `stop` | Shutdown server |
+| `handoff [message]` | 在当前页面打开可见 Chrome 以便用户接管 |
+| `restart` | 重启服务器 |
+| `resume` | 在用户接管后重新快照，将控制权返回给 AI |
+| `status` | 健康检查 |
+| `stop` | 关闭服务器 |
 
-## Tips
+## 技巧
 
-1. **Navigate once, query many times.** `goto` loads the page; then `text`, `js`, `screenshot` all hit the loaded page instantly.
-2. **Use `snapshot -i` first.** See all interactive elements, then click/fill by ref. No CSS selector guessing.
-3. **Use `snapshot -D` to verify.** Baseline → action → diff. See exactly what changed.
-4. **Use `is` for assertions.** `is visible .modal` is faster and more reliable than parsing page text.
-5. **Use `snapshot -a` for evidence.** Annotated screenshots are great for bug reports.
-6. **Use `snapshot -C` for tricky UIs.** Finds clickable divs that the accessibility tree misses.
-7. **Check `console` after actions.** Catch JS errors that don't surface visually.
-8. **Use `chain` for long flows.** Single command, no per-step CLI overhead.
+1. **导航一次，查询多次。** `goto` 加载页面；然后 `text`、`js`、`screenshot` 都立即作用于已加载的页面。
+2. **先使用 `snapshot -i`。** 查看所有交互元素，然后用 ref 点击/填写。不用猜 CSS 选择器。
+3. **使用 `snapshot -D` 来验证。** 基线 → 操作 → diff。看到具体哪些变了。
+4. **使用 `is` 做断言。** `is visible .modal` 比解析页面文本更快更可靠。
+5. **使用 `snapshot -a` 采集证据。** 标注截图非常适合 bug 报告。
+6. **对复杂 UI 使用 `snapshot -C`。** 找到可访问性树遗漏的可点击 div。
+7. **操作后检查 `console`。** 捕捉不直观显示的 JS 错误。
+8. **长流程使用 `chain`。** 单命令，无每步 CLI 开销。
