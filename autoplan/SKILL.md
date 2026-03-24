@@ -2,14 +2,13 @@
 name: autoplan
 version: 1.0.0
 description: |
-  Auto-review pipeline — reads the full CEO, design, and eng review skills from disk
-  and runs them sequentially with auto-decisions using 6 decision principles. Surfaces
-  taste decisions (close approaches, borderline scope, codex disagreements) at a final
-  approval gate. One command, fully reviewed plan out.
-  Use when asked to "auto review", "autoplan", "run all reviews", "review this plan
-  automatically", or "make the decisions for me".
-  Proactively suggest when the user has a plan file and wants to run the full review
-  gauntlet without answering 15-30 intermediate questions.
+  自动审查流水线——从磁盘读取完整的 CEO、设计和工程审查 skill，
+  并使用 6 条决策原则进行自动决策，顺序运行。在最终批准门前
+  呈现品味决策（接近方案、边界范围、codex 分歧）。一条命令，
+  输出完整审查后的计划。
+  当被要求"自动审查"、"autoplan"、"运行所有审查"、"自动审查这个计划"、
+  或"帮我做决定"时使用。
+  当用户有计划文件并希望运行完整审查流程而不必回答 15-30 个中间问题时，主动建议。
 benefits-from: [office-hours]
 allowed-tools:
   - Bash
@@ -20,11 +19,12 @@ allowed-tools:
   - Grep
   - WebSearch
   - AskUserQuestion
+
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
-## Preamble (run first)
+## 前置准备（优先执行）
 
 ```bash
 _UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
@@ -55,200 +55,184 @@ echo '{"skill":"autoplan","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(bas
 for _PF in $(find ~/.gstack/analytics -maxdepth 1 -name '.pending-*' 2>/dev/null); do [ -f "$_PF" ] && ~/.claude/skills/gstack/bin/gstack-telemetry-log --event-type skill_run --skill _pending_finalize --outcome unknown --session-id "$_SESSION_ID" 2>/dev/null || true; break; done
 ```
 
-If `PROACTIVE` is `"false"`, do not proactively suggest gstack skills — only invoke
-them when the user explicitly asks. The user opted out of proactive suggestions.
+如果 `PROACTIVE` 为 `"false"`，不要主动建议 gstack skill——只在用户明确要求时才调用。
+用户已选择关闭主动建议。
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+如果输出显示 `UPGRADE_AVAILABLE <旧版本> <新版本>`：阅读 `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` 并遵循"内联升级流程"（如果已配置则自动升级，否则用 AskUserQuestion 提供 4 个选项，如果放弃则写入暂存状态）。如果显示 `JUST_UPGRADED <从> <到>`：告诉用户"正在运行 gstack v{到}（刚刚更新！）"并继续。
 
-If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
-Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
-thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
-Then offer to open the essay in their default browser:
+如果 `LAKE_INTRO` 为 `no`：在继续之前，介绍"完整性原则"。
+告诉用户："gstack 遵循**煮沸湖泊**原则——当 AI 让边际成本接近零时，总是做完整的事情。了解更多：https://garryslist.org/posts/boil-the-ocean"
+然后提议在默认浏览器中打开这篇文章：
 
 ```bash
 open https://garryslist.org/posts/boil-the-ocean
 touch ~/.gstack/.completeness-intro-seen
 ```
 
-Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
+只有用户同意时才运行 `open`。始终运行 `touch` 标记为已读。这只发生一次。
 
-If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+如果 `TEL_PROMPTED` 为 `no` 且 `LAKE_INTRO` 为 `yes`：在处理完湖泊介绍之后，询问用户关于遥测数据。使用 AskUserQuestion：
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
+> 帮助 gstack 变得更好！社区模式分享使用数据（你使用了哪些 skill、耗时多长、崩溃信息）和一个稳定的设备 ID，以便我们追踪趋势并更快修复 bug。不会发送任何代码、文件路径或仓库名称。随时可以通过 `gstack-config set telemetry off` 更改。
 
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
+选项：
+- A) 帮助 gstack 变得更好！（推荐）
+- B) 不用了，谢谢
 
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
+如果选 A：运行 `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
 
-If B: ask a follow-up AskUserQuestion:
+如果选 B：再问一个 AskUserQuestion：
 
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
+> 那匿名模式呢？我们只知道**有人**使用了 gstack——没有唯一 ID，无法关联会话。只是一个计数器，帮助我们了解是否有人在使用。
 
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
+选项：
+- A) 好的，匿名可以
+- B) 不用了，谢谢，完全关闭
 
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
+如果 B→A：运行 `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
+如果 B→B：运行 `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
 
-Always run:
+始终运行：
 ```bash
 touch ~/.gstack/.telemetry-prompted
 ```
 
-This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
+这只发生一次。如果 `TEL_PROMPTED` 为 `yes`，完全跳过这一步。
 
-## AskUserQuestion Format
+## AskUserQuestion 格式
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
+**每次 AskUserQuestion 调用都必须遵循此结构：**
+1. **重新锚定：** 说明项目、当前分支（使用前置准备输出的 `_BRANCH` 值——不要用对话历史或 gitStatus 中的任何分支）和当前计划/任务。（1-2 句话）
+2. **简化：** 用普通英语解释问题，连聪明的 16 岁孩子都能理解。不使用原始函数名、不使用内部术语、不使用实现细节。用具体的例子和类比。说它**做什么**，而不是它叫什么。
+3. **建议：** `RECOMMENDATION: 选择 [X]，因为 [一句话原因]`——始终优先选择完整选项而非捷径（见完整性原则）。为每个选项包含 `Completeness: X/10`。校准：10 = 完整实现（所有边缘情况、完全覆盖），7 = 覆盖愉快路径但跳过一些边缘，3 = 捷径 defer 重要工作。如果两个选项都是 8+，选更高的；如果一个 ≤5，标记出来。
+4. **选项：** 字母选项：`A) ... B) ... C) ...`——当选项涉及工作量时，同时显示两个刻度：`(人工: ~X / CC: ~Y)`
 
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
+假设用户已经 20 分钟没有看这个窗口了，代码也没有打开。如果你自己都需要看源码才能理解自己的解释，那解释就太复杂了。
 
-Per-skill instructions may add additional formatting rules on top of this baseline.
+各 skill 指令可以在此基础上添加额外的格式规则。
 
-## Completeness Principle — Boil the Lake
+## 完整性原则——煮沸湖泊
 
-AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
+AI 辅助编码使完整的边际成本接近零。当你呈现选项时：
 
-- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
-- **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
-- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
+- 如果选项 A 是完整实现（完全对等、所有边缘情况、100% 覆盖）而选项 B 是节省少量工作的捷径——**始终推荐 A**。用 CC+gstack，70 行和 150 行之间的差异毫无意义。"差不多就行"在"完整"只需多花几分钟的情况下是错误的直觉。
+- **湖泊 vs 海洋：** "湖泊"是可以煮沸的——模块 100% 测试覆盖、完整功能实现、处理所有边缘情况、完整错误路径。"海洋"则不是——从零重写整个系统、向无法控制的依赖添加功能、花费多个季度的平台迁移。推荐煮湖。把海洋标记为超出范围。
+- **估算工作量时**，始终显示两个刻度：人工团队时间和 CC+gstack 时间。压缩比因任务类型而异——参考：
 
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
-| Test writing | 1 day | 15 min | ~50x |
-| Feature implementation | 1 week | 30 min | ~30x |
-| Bug fix + regression test | 4 hours | 15 min | ~20x |
-| Architecture / design | 2 days | 4 hours | ~5x |
-| Research / exploration | 1 day | 3 hours | ~3x |
+| 任务类型 | 人工团队 | CC+gstack | 压缩比 |
+|-----------|-----------|-----------|--------|
+| 样板代码 / 脚手架 | 2 天 | 15 分钟 | ~100x |
+| 写测试 | 1 天 | 15 分钟 | ~50x |
+| 功能实现 | 1 周 | 30 分钟 | ~30x |
+| Bug 修复 + 回归测试 | 4 小时 | 15 分钟 | ~20x |
+| 架构 / 设计 | 2 天 | 4 小时 | ~5x |
+| 研究 / 探索 | 1 天 | 3 小时 | ~3x |
 
-- This principle applies to test coverage, error handling, documentation, edge cases, and feature completeness. Don't skip the last 10% to "save time" — with AI, that 10% costs seconds.
+- 此原则适用于测试覆盖、错误处理、文档、边缘情况和功能完整性。不要跳过最后 10% 来"节省时间"——有了 AI，那 10% 只需几秒钟。
 
-**Anti-patterns — DON'T do this:**
-- BAD: "Choose B — it covers 90% of the value with less code." (If A is only 70 lines more, choose A.)
-- BAD: "We can skip edge case handling to save time." (Edge case handling costs minutes with CC.)
-- BAD: "Let's defer test coverage to a follow-up PR." (Tests are the cheapest lake to boil.)
-- BAD: Quoting only human-team effort: "This would take 2 weeks." (Say: "2 weeks human / ~1 hour CC.")
+**反模式——不要这样做：**
+- 不好："选 B——它以更少代码覆盖了 90% 的价值。"（如果 A 只多 70 行，选 A。）
+- 不好："我们可以跳过边缘情况处理来节省时间。"（用 CC 处理边缘情况只需几分钟。）
+- 不好："我们把测试覆盖 defer 到后续 PR。"（测试是最便宜的湖，值得煮。）
+- 不好：只引用人工团队工作量："这需要 2 周。"（要说："2 周人工 / ~1 小时 CC"。）
 
-## Repo Ownership Mode — See Something, Say Something
+## 仓库所有权模式——看到就说
 
-`REPO_MODE` from the preamble tells you who owns issues in this repo:
+前置准备中的 `REPO_MODE` 告诉你谁负责这个仓库的问题：
 
-- **`solo`** — One person does 80%+ of the work. They own everything. When you notice issues outside the current branch's changes (test failures, deprecation warnings, security advisories, linting errors, dead code, env problems), **investigate and offer to fix proactively**. The solo dev is the only person who will fix it. Default to action.
-- **`collaborative`** — Multiple active contributors. When you notice issues outside the branch's changes, **flag them via AskUserQuestion** — it may be someone else's responsibility. Default to asking, not fixing.
-- **`unknown`** — Treat as collaborative (safer default — ask before fixing).
+- **`solo`** — 一个人做了 80%+ 的工作。他负责一切。当你注意到当前分支变更之外的问题（测试失败、弃用警告、安全公告、lint 错误、死代码、环境问题），**主动调查并提出修复**。solo 开发者是唯一会修的人。默认采取行动。
+- **`collaborative`** — 多个活跃贡献者。当你注意到分支变更之外的问题，**通过 AskUserQuestion 标记**——这可能是别人的责任。默认询问，而不是修复。
+- **`unknown`** — 按 collaborative 处理（更安全的默认值——修复前先问）。
 
-**See Something, Say Something:** Whenever you notice something that looks wrong during ANY workflow step — not just test failures — flag it briefly. One sentence: what you noticed and its impact. In solo mode, follow up with "Want me to fix it?" In collaborative mode, just flag it and move on.
+**看到就说：** 每当在任何工作流步骤中注意到看起来不对的地方——不仅仅是测试失败——简要标记。一句话：你注意到了什么以及它的影响。在 solo 模式下，后续跟进"要我来修吗？"在 collaborative 模式下，只标记然后继续。
 
-Never let a noticed issue silently pass. The whole point is proactive communication.
+永远不要让注意到的问题无声地过去。主动沟通才是关键。
 
-## Search Before Building
+## 构建前先搜索
 
-Before building infrastructure, unfamiliar patterns, or anything the runtime might have a built-in — **search first.** Read `~/.claude/skills/gstack/ETHOS.md` for the full philosophy.
+在构建基础设施、不熟悉的模式或运行时可能已有内置的任何东西之前——**先搜索。** 阅读 `~/.claude/skills/gstack/ETHOS.md` 了解完整理念。
 
-**Three layers of knowledge:**
-- **Layer 1** (tried and true — in distribution). Don't reinvent the wheel. But the cost of checking is near-zero, and once in a while, questioning the tried-and-true is where brilliance occurs.
-- **Layer 2** (new and popular — search for these). But scrutinize: humans are subject to mania. Search results are inputs to your thinking, not answers.
-- **Layer 3** (first principles — prize these above all). Original observations derived from reasoning about the specific problem. The most valuable of all.
+**三层知识：**
+- **第一层**（久经考验——在发行版中）。不要重复造轮子。但检查的成本接近零，偶尔质疑久经考验的知识可能会产生出色的想法。
+- **第二层**（新的和流行的——搜索这些）。但要仔细审视：人类容易陷入狂热。搜索结果是你思考的输入，不是答案。
+- **第三层**（第一性原理——最重视这些）。从对具体问题的推理中得出的原创观察。这是最有价值的。
 
-**Eureka moment:** When first-principles reasoning reveals conventional wisdom is wrong, name it:
-"EUREKA: Everyone does X because [assumption]. But [evidence] shows this is wrong. Y is better because [reasoning]."
+**尤里卡时刻：** 当第一性原理推理揭示传统智慧是错误的，给它命名：
+"EUREKA: 每个人都做 X 因为 [假设]。但 [证据] 表明这是错的。Y 更好因为 [推理]。"
 
-Log eureka moments:
+记录尤里卡时刻：
 ```bash
 jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg branch "$(git branch --show-current 2>/dev/null)" --arg insight "ONE_LINE_SUMMARY" '{ts:$ts,skill:$skill,branch:$branch,insight:$insight}' >> ~/.gstack/analytics/eureka.jsonl 2>/dev/null || true
 ```
-Replace SKILL_NAME and ONE_LINE_SUMMARY. Runs inline — don't stop the workflow.
+替换 SKILL_NAME 和 ONE_LINE_SUMMARY。行内运行——不要停止工作流。
 
-**WebSearch fallback:** If WebSearch is unavailable, skip the search step and note: "Search unavailable — proceeding with in-distribution knowledge only."
+**WebSearch 备用：** 如果 WebSearch 不可用，跳过搜索步骤并注明："Search unavailable — proceeding with in-distribution knowledge only."
 
-## Contributor Mode
+## 贡献者模式
 
-If `_CONTRIB` is `true`: you are in **contributor mode**. You're a gstack user who also helps make it better.
+如果 `_CONTRIB` 为 `true`：你处于**贡献者模式**。你是 gstack 用户，也在帮助它变得更好。
 
-**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
+**在每个主要工作流步骤结束时**（不是每个单独命令之后），反思你使用的 gstack 工具。评分 0 到 10。如果不是 10，想想为什么。如果 gstack 代码或 skill markdown 有明显可操作的 bug 或有趣可以做得更好的地方——提交现场报告。
 
-**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
+**校准——这是标准：** 例如，`$B js "await fetch(...)"` 曾经因为 `SyntaxError: await is only valid in async functions` 失败，因为 gstack 没有在异步上下文中包装表达式。这是小的，但输入是合理的，gstack 应该处理——这类值得提交的东西。
 
-**NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
+**不值得提交：** 用户的 app bug、用户 URL 的网络错误、用户站点的认证失败、用户自己的 JS 逻辑 bug。
 
-**To file:** write `~/.gstack/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
+**值得提交：** 写 `~/.gstack/contributor-logs/{slug}.md`，包含**所有以下部分**：
 
 ```
-# {Title}
+# {标题}
 
-Hey gstack team — ran into this while using /{skill-name}:
+嘿 gstack 团队——我在使用 /{skill-name} 时遇到了这个：
 
-**What I was trying to do:** {what the user/agent was attempting}
-**What happened instead:** {what actually happened}
-**My rating:** {0-10} — {one sentence on why it wasn't a 10}
+**我尝试做的事：** {用户/代理尝试做什么}
+**实际发生的：** {实际发生了什么}
+**我的评分：** {0-10} — {一句话说明为什么不是 10}
 
-## Steps to reproduce
-1. {step}
+## 复现步骤
+1. {步骤}
 
-## Raw output
+## 原始输出
 ```
-{paste the actual error or unexpected output here}
-```
-
-## What would make this a 10
-{one sentence: what gstack should have done differently}
-
-**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
+{paste 实际错误或意外输出 here}
 ```
 
-Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
+## 怎样才能达到 10
+{一句话：gstack 应该如何不同地做}
 
-## Completion Status Protocol
+**日期：** {YYYY-MM-DD} | **版本：** {gstack 版本} | **Skill：** /{skill}
+```
 
-When completing a skill workflow, report status using one of:
-- **DONE** — All steps completed successfully. Evidence provided for each claim.
-- **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
-- **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
-- **NEEDS_CONTEXT** — Missing information required to continue. State exactly what you need.
+Slug：小写、连字符、最多 60 个字符（例如 `browse-js-no-await`）。如果文件已存在则跳过。每个会话最多 3 份报告。行内提交并继续——不要停止工作流。告诉用户："已提交 gstack 现场报告：{标题}"
 
-### Escalation
+## 完成状态协议
 
-It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
+完成 skill 工作流时，使用以下之一报告状态：
+- **DONE** — 所有步骤成功完成。每个声明都提供了证据。
+- **DONE_WITH_CONCERNS** — 完成，但有用户应该知道的问题。列出每个问题。
+- **BLOCKED** — 无法继续。说明阻塞内容和已尝试的方法。
+- **NEEDS_CONTEXT** — 缺少继续所需的信息。准确说明需要什么。
 
-Bad work is worse than no work. You will not be penalized for escalating.
-- If you have attempted a task 3 times without success, STOP and escalate.
-- If you are uncertain about a security-sensitive change, STOP and escalate.
-- If the scope of work exceeds what you can verify, STOP and escalate.
+### 升级
 
-Escalation format:
+说"这对我来说太难了"或"我对这个结果没有信心"永远是可以的。糟糕的工作比没有工作更糟糕。
+- 如果你已经尝试任务 3 次都没有成功，停止并升级。
+- 如果你对敏感变更不确定，停止并升级。
+- 如果工作量超出你能验证的范围，停止并升级。
+
+升级格式：
 ```
 STATUS: BLOCKED | NEEDS_CONTEXT
-REASON: [1-2 sentences]
-ATTEMPTED: [what you tried]
-RECOMMENDATION: [what the user should do next]
+REASON: [1-2 句话]
+ATTEMPTED: [你尝试了什么]
+RECOMMENDATION: [用户下一步应该做什么]
 ```
 
-## Telemetry (run last)
+## 遥测数据（最后运行）
 
-After the skill workflow completes (success, error, or abort), log the telemetry event.
-Determine the skill name from the `name:` field in this file's YAML frontmatter.
-Determine the outcome from the workflow result (success if completed normally, error
-if it failed, abort if the user interrupted).
+skill 工作流完成后（成功、错误或中止），记录遥测事件。从本文件 YAML frontmatter 的 `name:` 字段确定 skill 名称。从工作流结果确定结果。
 
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This command writes telemetry to
-`~/.gstack/analytics/` (user config directory, not project files). The skill
-preamble already writes to the same directory — this is the same pattern.
-Skipping this command loses session duration and outcome data.
-
-Run this bash:
+运行此 bash：
 
 ```bash
 _TEL_END=$(date +%s)
@@ -259,194 +243,151 @@ rm -f ~/.gstack/analytics/.pending-"$_SESSION_ID" 2>/dev/null || true
   --used-browse "USED_BROWSE" --session-id "$_SESSION_ID" 2>/dev/null &
 ```
 
-Replace `SKILL_NAME` with the actual skill name from frontmatter, `OUTCOME` with
-success/error/abort, and `USED_BROWSE` with true/false based on whether `$B` was used.
-If you cannot determine the outcome, use "unknown". This runs in the background and
-never blocks the user.
+替换 `SKILL_NAME`、`OUTCOME`（success/error/abort）和 `USED_BROWSE`（true/false）。在后台运行，永远不会阻塞用户。
 
-## Plan Status Footer
+## 计划状态页脚
 
-When you are in plan mode and about to call ExitPlanMode:
+当你在计划模式中即将调用 ExitPlanMode 时：
 
-1. Check if the plan file already has a `## GSTACK REVIEW REPORT` section.
-2. If it DOES — skip (a review skill already wrote a richer report).
-3. If it does NOT — run this command:
+1. 检查计划文件是否已有 `## GSTACK REVIEW REPORT` 部分。
+2. 如果有——跳过（审查 skill 已经写了更丰富的报告）。
+3. 如果没有——运行此命令：
 
-\`\`\`bash
+```bash
 ~/.claude/skills/gstack/bin/gstack-review-read
-\`\`\`
+```
 
-Then write a `## GSTACK REVIEW REPORT` section to the end of the plan file:
+然后将 `## GSTACK REVIEW REPORT` 部分写入计划文件末尾。如果输出包含审查条目，用标准报告表格式化；如果为空，写入占位符表。
 
-- If the output contains review entries (JSONL lines before `---CONFIG---`): format the
-  standard report table with runs/status/findings per skill, same format as the review
-  skills use.
-- If the output is `NO_REVIEWS` or empty: write this placeholder table:
+## Step 0: 检测基准分支
 
-\`\`\`markdown
-## GSTACK REVIEW REPORT
+确定此 PR 以哪个分支为目标。在所有后续步骤中将结果作为"基准分支"使用。
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | 0 | — | — |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | 0 | — | — |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | 0 | — | — |
-
-**VERDICT:** NO REVIEWS YET — run \`/autoplan\` for full review pipeline, or individual reviews above.
-\`\`\`
-
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This writes to the plan file, which is the one
-file you are allowed to edit in plan mode. The plan file review report is part of the
-plan's living status.
-
-## Step 0: Detect base branch
-
-Determine which branch this PR targets. Use the result as "the base branch" in all subsequent steps.
-
-1. Check if a PR already exists for this branch:
+1. 检查此分支是否已存在 PR：
    `gh pr view --json baseRefName -q .baseRefName`
-   If this succeeds, use the printed branch name as the base branch.
+   如果成功，将打印的分支名作为基准分支。
 
-2. If no PR exists (command fails), detect the repo's default branch:
+2. 如果没有 PR（命令失败），检测仓库的默认分支：
    `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`
 
-3. If both commands fail, fall back to `main`.
+3. 如果两个命令都失败，回退到 `main`。
 
-Print the detected base branch name. In every subsequent `git diff`, `git log`,
-`git fetch`, `git merge`, and `gh pr create` command, substitute the detected
-branch name wherever the instructions say "the base branch."
+打印检测到的基准分支名。在每个后续的 `git diff`、`git log`、`git fetch`、`git merge` 和 `gh pr create` 命令中，用检测到的分支名替换指令中说的"基准分支"。
 
 ---
 
-## Prerequisite Skill Offer
+## 前置 Skill 提议
 
-When the design doc check above prints "No design doc found," offer the prerequisite
-skill before proceeding.
+当上面的设计文档检查打印"No design doc found"时，在继续之前提议前置 skill。
 
-Say to the user via AskUserQuestion:
+通过 AskUserQuestion 告诉用户：
 
-> "No design doc found for this branch. `/office-hours` produces a structured problem
-> statement, premise challenge, and explored alternatives — it gives this review much
-> sharper input to work with. Takes about 10 minutes. The design doc is per-feature,
-> not per-product — it captures the thinking behind this specific change."
+> "没有找到此分支的设计文档。`/office-hours` 会生成结构化的问题陈述、前提挑战和已探索的替代方案——它能给这个审查更有力的输入。大约需要 10 分钟。设计文档是按功能而不是按产品——它捕捉的是这个特定变更背后的思考。"
 
-Options:
-- A) Run /office-hours now (we'll pick up the review right after)
-- B) Skip — proceed with standard review
+选项：
+- A) 现在运行 /office-hours（完成后我会从这里继续审查）
+- B) 跳过——进行标准审查
 
-If they skip: "No worries — standard review. If you ever want sharper input, try
-/office-hours first next time." Then proceed normally. Do not re-offer later in the session.
+如果他们跳过："没关系——标准审查。如果你想要更有力的输入，下次先运行 /office-hours。"然后正常继续。稍后不要再次提议。
 
-If they choose A:
+如果他们选择 A：
 
-Say: "Running /office-hours inline. Once the design doc is ready, I'll pick up
-the review right where we left off."
+说："正在内联运行 /office-hours。设计文档准备好后，我会从这里继续审查。"
 
-Read the office-hours skill file from disk using the Read tool:
+使用 Read 工具从磁盘读取 office-hours skill 文件：
 `~/.claude/skills/gstack/office-hours/SKILL.md`
 
-Follow it inline, **skipping these sections** (already handled by the parent skill):
-- Preamble (run first)
-- AskUserQuestion Format
-- Completeness Principle — Boil the Lake
-- Search Before Building
-- Contributor Mode
-- Completion Status Protocol
-- Telemetry (run last)
+内联遵循它，**跳过这些部分**（已由父 skill 处理）：
+- 前置准备（优先执行）
+- AskUserQuestion 格式
+- 完整性原则——煮沸湖泊
+- 构建前先搜索
+- 贡献者模式
+- 完成状态协议
+- 遥测数据（最后运行）
 
-If the Read fails (file not found), say:
-"Could not load /office-hours — proceeding with standard review."
+如果读取失败（文件未找到），说：
+"无法加载 /office-hours——进行标准审查。"
 
-After /office-hours completes, re-run the design doc check:
+/office-hours 完成后，重新运行设计文档检查：
 ```bash
 SLUG=$(~/.claude/skills/gstack/browse/bin/remote-slug 2>/dev/null || basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr '/' '-' || echo 'no-branch')
 DESIGN=$(ls -t ~/.gstack/projects/$SLUG/*-$BRANCH-design-*.md 2>/dev/null | head -1)
-[ -z "$DESIGN" ] && DESIGN=$(ls -t ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null | head -1)
+[ -z "$DESIGN" ] && DESIGN=$(ls -t ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null | head-1)
 [ -n "$DESIGN" ] && echo "Design doc found: $DESIGN" || echo "No design doc found"
 ```
 
-If a design doc is now found, read it and continue the review.
-If none was produced (user may have cancelled), proceed with standard review.
+如果现在找到了设计文档，阅读它并继续审查。
+如果没有生成（用户可能取消了），进行标准审查。
 
-# /autoplan — Auto-Review Pipeline
+# /autoplan — 自动审查流水线
 
-One command. Rough plan in, fully reviewed plan out.
+一条命令。粗糙计划输入，完整审查后的计划输出。
 
-/autoplan reads the full CEO, design, and eng review skill files from disk and follows
-them at full depth — same rigor, same sections, same methodology as running each skill
-manually. The only difference: intermediate AskUserQuestion calls are auto-decided using
-the 6 principles below. Taste decisions (where reasonable people could disagree) are
-surfaced at a final approval gate.
+/autoplan 从磁盘读取完整的 CEO、设计和工程审查 skill 文件，并全深度遵循它们——与手动运行每个 skill 具有相同的严谨性、相同的部分、相同的方法论。唯一区别：中间的 AskUserQuestion 调用使用以下 6 条原则进行自动决策。品味决策（合理的人可能有分歧的地方）在最终批准门呈现。
 
 ---
 
-## The 6 Decision Principles
+## 6 条决策原则
 
-These rules auto-answer every intermediate question:
+这些规则自动回答每个中间问题：
 
-1. **Choose completeness** — Ship the whole thing. Pick the approach that covers more edge cases.
-2. **Boil lakes** — Fix everything in the blast radius (files modified by this plan + direct importers). Auto-approve expansions that are in blast radius AND < 1 day CC effort (< 5 files, no new infra).
-3. **Pragmatic** — If two options fix the same thing, pick the cleaner one. 5 seconds choosing, not 5 minutes.
-4. **DRY** — Duplicates existing functionality? Reject. Reuse what exists.
-5. **Explicit over clever** — 10-line obvious fix > 200-line abstraction. Pick what a new contributor reads in 30 seconds.
-6. **Bias toward action** — Merge > review cycles > stale deliberation. Flag concerns but don't block.
+1. **选择完整性** — 交付完整的东西。选择覆盖更多边缘情况的方案。
+2. **煮沸湖泊** — 修复爆炸半径内的所有内容（本计划修改的文件 + 直接导入方）。自动批准爆炸半径内且 < 1 天 CC 工作量的扩展（< 5 个文件，无新基础设施）。
+3. **务实** — 如果两个选项修复了相同的东西，选更干净的。5 秒钟选择，而不是 5 分钟。
+4. **DRY** — 复制了现有功能？拒绝。重用已有的。
+5. **显式优于巧妙** — 10 行明显修复 > 200 行抽象。选新贡献者 30 秒能读懂的那个。
+6. **行动倾向** — 合并 > 审查循环 > 陈旧 deliberation。标记问题但不阻塞。
 
-**Conflict resolution (context-dependent tiebreakers):**
-- **CEO phase:** P1 (completeness) + P2 (boil lakes) dominate.
-- **Eng phase:** P5 (explicit) + P3 (pragmatic) dominate.
-- **Design phase:** P5 (explicit) + P1 (completeness) dominate.
-
----
-
-## Decision Classification
-
-Every auto-decision is classified:
-
-**Mechanical** — one clearly right answer. Auto-decide silently.
-Examples: run codex (always yes), run evals (always yes), reduce scope on a complete plan (always no).
-
-**Taste** — reasonable people could disagree. Auto-decide with recommendation, but surface at the final gate. Three natural sources:
-1. **Close approaches** — top two are both viable with different tradeoffs.
-2. **Borderline scope** — in blast radius but 3-5 files, or ambiguous radius.
-3. **Codex disagreements** — codex recommends differently and has a valid point.
+**冲突解决（上下文相关的决胜规则）：**
+- **CEO 阶段：** P1（完整性）+ P2（煮湖）占主导。
+- **工程阶段：** P5（显式）+ P3（务实）占主导。
+- **设计阶段：** P5（显式）+ P1（完整性）占主导。
 
 ---
 
-## What "Auto-Decide" Means
+## 决策分类
 
-Auto-decide replaces the USER'S judgment with the 6 principles. It does NOT replace
-the ANALYSIS. Every section in the loaded skill files must still be executed at the
-same depth as the interactive version. The only thing that changes is who answers the
-AskUserQuestion: you do, using the 6 principles, instead of the user.
+每个自动决策都有分类：
 
-**You MUST still:**
-- READ the actual code, diffs, and files each section references
-- PRODUCE every output the section requires (diagrams, tables, registries, artifacts)
-- IDENTIFY every issue the section is designed to catch
-- DECIDE each issue using the 6 principles (instead of asking the user)
-- LOG each decision in the audit trail
-- WRITE all required artifacts to disk
+**机械性** — 一个明显正确的答案。自动决定，不出声。
+例如：运行 codex（总是 yes），运行 evals（总是 yes），在完整计划上缩减范围（总是 no）。
 
-**You MUST NOT:**
-- Compress a review section into a one-liner table row
-- Write "no issues found" without showing what you examined
-- Skip a section because "it doesn't apply" without stating what you checked and why
-- Produce a summary instead of the required output (e.g., "architecture looks good"
-  instead of the ASCII dependency graph the section requires)
-
-"No issues found" is a valid output for a section — but only after doing the analysis.
-State what you examined and why nothing was flagged (1-2 sentences minimum).
-"Skipped" is never valid for a non-skip-listed section.
+**品味性** — 合理的人可能有分歧。自动决定并提供建议，但在最终门呈现。三个自然来源：
+1. **接近方案** — 前两名都是可行的，有不同的权衡。
+2. **边界范围** — 在爆炸半径内但 3-5 个文件，或范围模糊。
+3. **Codex 分歧** — codex 建议不同而且有有效论点。
 
 ---
 
-## Phase 0: Intake + Restore Point
+## "自动决定"是什么意思
 
-### Step 1: Capture restore point
+自动决定用 6 条原则**替换用户的判断**。它**不替换分析**。加载的 skill 文件中的每个部分仍然必须以与交互版本相同的深度执行。唯一改变的是谁回答 AskUserQuestion：是你，用 6 条原则，而不是用户。
 
-Before doing anything, save the plan file's current state to an external file:
+**你必须仍然：**
+- 阅读每个部分引用的实际代码、diff 和文件
+- 生成部分要求的所有输出（图表、表格、注册表、工件）
+- 识别部分设计捕获的每个问题
+- 使用 6 条原则决定每个问题（而不是问用户）
+- 在审计日志中记录每个决策
+- 将所有必需的工件写入磁盘
+
+**你必须不：**
+- 将审查部分压缩成一行表格行
+- 在没有显示你检查了什么的情况下写"没有问题"
+- 跳过部分因为"它不适用"而没有说明你检查了什么以及为什么
+- 用摘要代替要求的输出（例如，"架构看起来不错"而不是部分要求的 ASCII 依赖图）
+
+"没有问题"是部分的有效输出——但只有在做完分析之后。在说明你检查了什么以及为什么没有标记（最少 1-2 句话）之后。"跳过"对非跳过列表中的部分永远无效。
+
+---
+
+## 阶段 0: 摄入 + 恢复点
+
+### Step 1: 捕获恢复点
+
+在做任何事情之前，将计划文件的当前状态保存到外部文件：
 
 ```bash
 eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
@@ -455,278 +396,261 @@ DATETIME=$(date +%Y%m%d-%H%M%S)
 echo "RESTORE_PATH=$HOME/.gstack/projects/$SLUG/${BRANCH}-autoplan-restore-${DATETIME}.md"
 ```
 
-Write the plan file's full contents to the restore path with this header:
+将计划文件的完整内容写入恢复路径，包含此标题：
 ```
-# /autoplan Restore Point
-Captured: [timestamp] | Branch: [branch] | Commit: [short hash]
+# /autoplan 恢复点
+捕获时间：[时间戳] | 分支：[分支] | 提交：[短哈希]
 
-## Re-run Instructions
-1. Copy "Original Plan State" below back to your plan file
-2. Invoke /autoplan
+## 重新运行指令
+1. 将下面的"原始计划状态"复制回计划文件
+2. 调用 /autoplan
 
-## Original Plan State
-[verbatim plan file contents]
+## 原始计划状态
+[逐字计划文件内容]
 ```
 
-Then prepend a one-line HTML comment to the plan file:
+然后在计划文件开头添加一行 HTML 注释：
 `<!-- /autoplan restore point: [RESTORE_PATH] -->`
 
-### Step 2: Read context
+### Step 2: 读取上下文
 
-- Read CLAUDE.md, TODOS.md, git log -30, git diff against the base branch --stat
-- Discover design docs: `ls -t ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null | head -1`
-- Detect UI scope: grep the plan for view/rendering terms (component, screen, form,
-  button, modal, layout, dashboard, sidebar, nav, dialog). Require 2+ matches. Exclude
-  false positives ("page" alone, "UI" in acronyms).
+- 阅读 CLAUDE.md、TODOS.md、git log -30、git diff 针对基准分支的 --stat
+- 发现设计文档：`ls -t ~/.gstack/projects/$SLUG/*-design-*.md 2>/dev/null | head-1`
+- 检测 UI 范围：grep 计划中的视图/渲染术语（component、screen、form、button、modal、layout、dashboard、sidebar、nav、dialog）。要求 2+ 个匹配。排除误报（单独的"page"、"缩写中的 UI"）。
 
-### Step 3: Load skill files from disk
+### Step 3: 从磁盘加载 skill 文件
 
-Read each file using the Read tool:
+使用 Read 工具读取每个文件：
 - `~/.claude/skills/gstack/plan-ceo-review/SKILL.md`
-- `~/.claude/skills/gstack/plan-design-review/SKILL.md` (only if UI scope detected)
+- `~/.claude/skills/gstack/plan-design-review/SKILL.md`（仅当检测到 UI 范围时）
 - `~/.claude/skills/gstack/plan-eng-review/SKILL.md`
 
-**Section skip list — when following a loaded skill file, SKIP these sections
-(they are already handled by /autoplan):**
-- Preamble (run first)
-- AskUserQuestion Format
-- Completeness Principle — Boil the Lake
-- Search Before Building
-- Contributor Mode
-- Completion Status Protocol
-- Telemetry (run last)
-- Step 0: Detect base branch
-- Review Readiness Dashboard
-- Plan File Review Report
-- Prerequisite Skill Offer (BENEFITS_FROM)
+**部分跳过列表——当遵循加载的 skill 文件时，跳过这些部分（已由 /autoplan 处理）：**
+- 前置准备（优先执行）
+- AskUserQuestion 格式
+- 完整性原则——煮沸湖泊
+- 构建前先搜索
+- 贡献者模式
+- 完成状态协议
+- 遥测数据（最后运行）
+- Step 0: 检测基准分支
+- 审查准备仪表板
+- 计划文件审查报告
+- 前置 Skill 提议（BENEFITS_FROM）
 
-Follow ONLY the review-specific methodology, sections, and required outputs.
+仅遵循审查特定的方法论、部分和要求的输出。
 
-Output: "Here's what I'm working with: [plan summary]. UI scope: [yes/no].
-Loaded review skills from disk. Starting full review pipeline with auto-decisions."
+输出："这是我要处理的：[计划摘要]。UI 范围：[是/否]。已从磁盘加载审查 skill。开始使用自动决策的全审查流水线。"
 
 ---
 
-## Phase 1: CEO Review (Strategy & Scope)
+## 阶段 1: CEO 审查（策略与范围）
 
-Follow plan-ceo-review/SKILL.md — all sections, full depth.
-Override: every AskUserQuestion → auto-decide using the 6 principles.
+遵循 plan-ceo-review/SKILL.md——所有部分，全深度。
+覆盖：每个 AskUserQuestion → 使用 6 条原则自动决定。
 
-**Override rules:**
-- Mode selection: SELECTIVE EXPANSION
-- Premises: accept reasonable ones (P6), challenge only clearly wrong ones
-- **GATE: Present premises to user for confirmation** — this is the ONE AskUserQuestion
-  that is NOT auto-decided. Premises require human judgment.
-- Alternatives: pick highest completeness (P1). If tied, pick simplest (P5).
-  If top 2 are close → mark TASTE DECISION.
-- Scope expansion: in blast radius + <1d CC → approve (P2). Outside → defer to TODOS.md (P3).
-  Duplicates → reject (P4). Borderline (3-5 files) → mark TASTE DECISION.
-- All 10 review sections: run fully, auto-decide each issue, log every decision.
+**覆盖规则：**
+- 模式选择：选择性扩展
+- 前提：接受合理的（P6），只挑战明显错误的
+- **门：向用户呈现前提供确认**——这是唯一一个**不是**自动决定的 AskUserQuestion。前提需要人类判断。
+- 替代方案：选择最高完整性（P1）。如果平局，选最简单的（P5）。如果前两名接近→标记为品味决策。
+- 范围扩展：在爆炸半径内 + <1 天 CC → 批准（P2）。外部 → defer 到 TODOS.md（P3）。重复 → 拒绝（P4）。边界（3-5 个文件）→ 标记为品味决策。
+- 所有 10 个审查部分：完全运行，自动决定每个问题，记录每个决策到审计日志。
 
-**Required execution checklist (CEO):**
+**必需执行检查清单（CEO）：**
 
-Step 0 (0A-0F) — run each sub-step and produce:
-- 0A: Premise challenge with specific premises named and evaluated
-- 0B: Existing code leverage map (sub-problems → existing code)
-- 0C: Dream state diagram (CURRENT → THIS PLAN → 12-MONTH IDEAL)
-- 0C-bis: Implementation alternatives table (2-3 approaches with effort/risk/pros/cons)
-- 0D: Mode-specific analysis with scope decisions logged
-- 0E: Temporal interrogation (HOUR 1 → HOUR 6+)
-- 0F: Mode selection confirmation
+Step 0（0A-0F）——运行每个子步骤并生成：
+- 0A: 前提挑战，命名和评估具体前提
+- 0B: 现有代码利用图（子问题 → 现有代码）
+- 0C: 梦想状态图（CURRENT → THIS PLAN → 12 个月理想状态）
+- 0C-bis: 实现替代方案表（2-3 种方法，含工作量/风险/优点/缺点）
+- 0D: 模式特定分析，记录范围决策
+- 0E: 时间审问（小时 1 → 小时 6+）
+- 0F: 模式选择确认
 
-Sections 1-10 — for EACH section, run the evaluation criteria from the loaded skill file:
-- Sections WITH findings: full analysis, auto-decide each issue, log to audit trail
-- Sections with NO findings: 1-2 sentences stating what was examined and why nothing
-  was flagged. NEVER compress a section to just its name in a table row.
-- Section 11 (Design): run only if UI scope was detected in Phase 0
+Sections 1-10——对于**每个**部分，从加载的 skill 文件运行评估标准：
+- 有发现的部分：完整分析，自动决定每个问题，记录到审计日志
+- 没有发现的部分：1-2 句话说明检查了什么以及为什么没有标记。永远不要将部分压缩成表格行。
+- Section 11（设计）：仅当阶段 0 检测到 UI 范围时运行
 
-**Mandatory outputs from Phase 1:**
-- "NOT in scope" section with deferred items and rationale
-- "What already exists" section mapping sub-problems to existing code
-- Error & Rescue Registry table (from Section 2)
-- Failure Modes Registry table (from review sections)
-- Dream state delta (where this plan leaves us vs 12-month ideal)
-- Completion Summary (the full summary table from the CEO skill)
+**阶段 1 的必需输出：**
+- "不在范围内"部分，含 defer 项目和理由
+- "现有内容"部分，将子问题映射到现有代码
+- 错误与救援注册表（来自 Section 2）
+- 故障模式注册表（来自审查部分）
+- 梦想状态增量（此计划让我们在哪里 vs 12 个月理想状态）
+- 完成摘要（来自 CEO skill 的完整摘要表）
 
 ---
 
-## Phase 2: Design Review (conditional — skip if no UI scope)
+## 阶段 2: 设计审查（条件性——如果没有 UI 范围则跳过）
 
-Follow plan-design-review/SKILL.md — all 7 dimensions, full depth.
-Override: every AskUserQuestion → auto-decide using the 6 principles.
+遵循 plan-design-review/SKILL.md——所有 7 个维度，全深度。
+覆盖：每个 AskUserQuestion → 使用 6 条原则自动决定。
 
-**Override rules:**
-- Focus areas: all relevant dimensions (P1)
-- Structural issues (missing states, broken hierarchy): auto-fix (P5)
-- Aesthetic/taste issues: mark TASTE DECISION
-- Design system alignment: auto-fix if DESIGN.md exists and fix is obvious
-
----
-
-## Phase 3: Eng Review + Codex
-
-Follow plan-eng-review/SKILL.md — all sections, full depth.
-Override: every AskUserQuestion → auto-decide using the 6 principles.
-
-**Override rules:**
-- Scope challenge: never reduce (P2)
-- Codex review: always run if available (P6)
-  Command: `codex exec "Review this plan for architectural issues, missing edge cases, and hidden complexity. Be adversarial. File: <plan_path>" -s read-only --enable web_search_cached`
-  Timeout: 10 minutes, then proceed with "Codex timed out — single-reviewer mode"
-- Architecture choices: explicit over clever (P5). If codex disagrees with valid reason → TASTE DECISION.
-- Evals: always include all relevant suites (P1)
-- Test plan: generate artifact at `~/.gstack/projects/$SLUG/{user}-{branch}-test-plan-{datetime}.md`
-- TODOS.md: collect all deferred scope expansions from Phase 1, auto-write
-
-**Required execution checklist (Eng):**
-
-1. Step 0 (Scope Challenge): Read actual code referenced by the plan. Map each
-   sub-problem to existing code. Run the complexity check. Produce concrete findings.
-
-2. Step 0.5 (Codex): Run if available. Present full output under CODEX SAYS header.
-
-3. Section 1 (Architecture): Produce ASCII dependency graph showing new components
-   and their relationships to existing ones. Evaluate coupling, scaling, security.
-
-4. Section 2 (Code Quality): Identify DRY violations, naming issues, complexity.
-   Reference specific files and patterns. Auto-decide each finding.
-
-5. **Section 3 (Test Review) — NEVER SKIP OR COMPRESS.**
-   This section requires reading actual code, not summarizing from memory.
-   - Read the diff or the plan's affected files
-   - Build the test diagram: list every NEW UX flow, data flow, codepath, and branch
-   - For EACH item in the diagram: what type of test covers it? Does one exist? Gaps?
-   - For LLM/prompt changes: which eval suites must run?
-   - Auto-deciding test gaps means: identify the gap → decide whether to add a test
-     or defer (with rationale and principle) → log the decision. It does NOT mean
-     skipping the analysis.
-   - Write the test plan artifact to disk
-
-6. Section 4 (Performance): Evaluate N+1 queries, memory, caching, slow paths.
-
-**Mandatory outputs from Phase 3:**
-- "NOT in scope" section
-- "What already exists" section
-- Architecture ASCII diagram (Section 1)
-- Test diagram mapping codepaths to coverage (Section 3)
-- Test plan artifact written to disk (Section 3)
-- Failure modes registry with critical gap flags
-- Completion Summary (the full summary from the Eng skill)
-- TODOS.md updates (collected from all phases)
+**覆盖规则：**
+- 重点领域：所有相关维度（P1）
+- 结构性问题（缺失状态、破坏层次结构）：自动修复（P5）
+- 美学/品味问题：标记为品味决策
+- 设计系统对齐：如果 DESIGN.md 存在且修复明显，则自动修复
 
 ---
 
-## Decision Audit Trail
+## 阶段 3: 工程审查 + Codex
 
-After each auto-decision, append a row to the plan file using Edit:
+遵循 plan-eng-review/SKILL.md——所有部分，全深度。
+覆盖：每个 AskUserQuestion → 使用 6 条原则自动决定。
+
+**覆盖规则：**
+- 范围挑战：永不缩减（P2）
+- Codex 审查：如果可用则始终运行（P6）
+  命令：`codex exec "Review this plan for architectural issues, missing edge cases, and hidden complexity. Be adversarial. File: <plan_path>" -s read-only --enable web_search_cached`
+  超时：10 分钟，然后继续"Codex 超时——单一审查者模式"
+- 架构选择：显式优于巧妙（P5）。如果 codex 不同意且有有效原因 → 品味决策。
+- Evals：始终包含所有相关套件（P1）
+- 测试计划：在 `~/.gstack/projects/$SLUG/{user}-{branch}-test-plan-{datetime}.md` 生成工件
+- TODOS.md：收集阶段 1 的所有 defer 范围扩展，自动写入
+
+**必需执行检查清单（工程）：**
+
+1. Step 0（范围挑战）：阅读计划引用的实际代码。将每个子问题映射到现有代码。运行复杂度检查。生成具体发现。
+
+2. Step 0.5（Codex）：如果可用则运行。在 CODEX SAYS 标题下呈现完整输出。
+
+3. Section 1（架构）：生成 ASCII 依赖图，显示新组件及其与现有组件的关系。评估耦合、扩展、安全性。
+
+4. Section 2（代码质量）：识别 DRY 违规、命名问题、复杂性。引用具体文件和模式。自动决定每个发现。
+
+5. **Section 3（测试审查）——永不跳过或压缩。**
+   此部分需要阅读实际代码，而不是从记忆中总结。
+   - 阅读 diff 或计划的受影响文件
+   - 构建测试图：列出每个新 UX 流程、数据流、代码路径和分支
+   - 对于图中的**每个**项目：什么类型的测试覆盖它？是否存在？差距？
+   - 对于 LLM/prompt 变更：必须运行哪些 eval 套件？
+   - 自动决定测试差距意味着：识别差距 → 决定是添加测试还是 defer（附理由和原则）→ 记录决策。它不意味着跳过分析。
+   - 将测试计划工件写入磁盘
+
+6. Section 4（性能）：评估 N+1 查询、内存、缓存、慢路径。
+
+**阶段 3 的必需输出：**
+- "不在范围内"部分
+- "现有内容"部分
+- 架构 ASCII 图（Section 1）
+- 将代码路径映射到覆盖率的测试图（Section 3）
+- 写入磁盘的测试计划工件（Section 3）
+- 带关键差距标志的故障模式注册表
+- 完成摘要（来自工程 skill 的完整摘要）
+- TODOS.md 更新（从所有阶段收集）
+
+---
+
+## 决策审计日志
+
+在每个自动决策后，使用 Edit 追加一行到计划文件：
 
 ```markdown
 <!-- AUTONOMOUS DECISION LOG -->
-## Decision Audit Trail
+## 决策审计日志
 
-| # | Phase | Decision | Principle | Rationale | Rejected |
+| # | 阶段 | 决策 | 原则 | 理由 | 拒绝 |
 |---|-------|----------|-----------|-----------|----------|
 ```
 
-Write one row per decision incrementally (via Edit). This keeps the audit on disk,
-not accumulated in conversation context.
+通过 Edit 逐步写入每行。这将审计保存在磁盘上，而不是积累在对话上下文中。
 
 ---
 
-## Pre-Gate Verification
+## 门前验证
 
-Before presenting the Final Approval Gate, verify that required outputs were actually
-produced. Check the plan file and conversation for each item.
+在呈现最终批准门之前，验证要求的输出实际已生成。检查计划文件和对话中的每个项目。
 
-**Phase 1 (CEO) outputs:**
-- [ ] Premise challenge with specific premises named (not just "premises accepted")
-- [ ] All applicable review sections have findings OR explicit "examined X, nothing flagged"
-- [ ] Error & Rescue Registry table produced (or noted N/A with reason)
-- [ ] Failure Modes Registry table produced (or noted N/A with reason)
-- [ ] "NOT in scope" section written
-- [ ] "What already exists" section written
-- [ ] Dream state delta written
-- [ ] Completion Summary produced
+**阶段 1（CEO）输出：**
+- [ ] 前提挑战，命名具体前提（不只是"前提已接受"）
+- [ ] 所有适用的审查部分有发现或明确的"检查了 X，没有标记"
+- [ ] 错误与救援注册表已生成（或注明 N/A 及原因）
+- [ ] 故障模式注册表已生成（或注明 N/A 及原因）
+- [ ] "不在范围内"部分已写
+- [ ] "现有内容"部分已写
+- [ ] 梦想状态增量已写
+- [ ] 完成摘要已生成
 
-**Phase 2 (Design) outputs — only if UI scope detected:**
-- [ ] All 7 dimensions evaluated with scores
-- [ ] Issues identified and auto-decided
+**阶段 2（设计）输出——仅当检测到 UI 范围时：**
+- [ ] 所有 7 个维度已评估并打分
+- [ ] 问题已识别并自动决定
 
-**Phase 3 (Eng) outputs:**
-- [ ] Scope challenge with actual code analysis (not just "scope is fine")
-- [ ] Architecture ASCII diagram produced
-- [ ] Test diagram mapping codepaths to test coverage
-- [ ] Test plan artifact written to disk at ~/.gstack/projects/$SLUG/
-- [ ] "NOT in scope" section written
-- [ ] "What already exists" section written
-- [ ] Failure modes registry with critical gap assessment
-- [ ] Completion Summary produced
+**阶段 3（工程）输出：**
+- [ ] 范围挑战含实际代码分析（不只是"范围没问题"）
+- [ ] 架构 ASCII 图已生成
+- [ ] 将代码路径映射到测试覆盖率的测试图
+- [ ] 测试计划工件已写入磁盘 ~/.gstack/projects/$SLUG/
+- [ ] "不在范围内"部分已写
+- [ ] "现有内容"部分已写
+- [ ] 故障模式注册表含关键差距评估
+- [ ] 完成摘要已生成
 
-**Audit trail:**
-- [ ] Decision Audit Trail has at least one row per auto-decision (not empty)
+**审计日志：**
+- [ ] 决策审计日志每条自动决策至少有一行（不为空）
 
-If ANY checkbox above is missing, go back and produce the missing output. Max 2
-attempts — if still missing after retrying twice, proceed to the gate with a warning
-noting which items are incomplete. Do not loop indefinitely.
+如果任何复选框缺失，返回并生成缺失的输出。最多重试 2 次——如果重试后仍然缺失，带着说明哪些项目不完整的警告继续到门。不要无限循环。
 
 ---
 
-## Phase 4: Final Approval Gate
+## 阶段 4: 最终批准门
 
-**STOP here and present the final state to the user.**
+**在这里停下来，向用户呈现最终状态。**
 
-Present as a message, then use AskUserQuestion:
+作为消息呈现，然后使用 AskUserQuestion：
 
 ```
-## /autoplan Review Complete
+## /autoplan 审查完成
 
-### Plan Summary
-[1-3 sentence summary]
+### 计划摘要
+[1-3 句话摘要]
 
-### Decisions Made: [N] total ([M] auto-decided, [K] choices for you)
+### 已做决策：[N] 条（[M] 条自动决定，[K] 条需要你选择）
 
-### Your Choices (taste decisions)
-[For each taste decision:]
-**Choice [N]: [title]** (from [phase])
-I recommend [X] — [principle]. But [Y] is also viable:
-  [1-sentence downstream impact if you pick Y]
+### 你的选择（品味决策）
+[对于每个品味决策：]
+**选择 [N]：[标题]**（来自 [阶段]）
+我建议 [X]——[原则]。但 [Y] 也是可行的：
+  [如果你选 Y，一句话下游影响]
 
-### Auto-Decided: [M] decisions [see Decision Audit Trail in plan file]
+### 自动决定：[M] 条决策 [见计划文件中的决策审计日志]
 
-### Review Scores
-- CEO: [summary]
-- Design: [summary or "skipped, no UI scope"]
-- Eng: [summary]
-- Codex: [summary or "unavailable"]
+### 审查评分
+- CEO：[摘要]
+- 设计：[摘要或"跳过，无 UI 范围"]
+- 工程：[摘要]
+- Codex：[摘要或"不可用"]
 
-### Deferred to TODOS.md
-[Items auto-deferred with reasons]
+### Defer 到 TODOS.md
+[自动 defer 的项目及原因]
 ```
 
-**Cognitive load management:**
-- 0 taste decisions: skip "Your Choices" section
-- 1-7 taste decisions: flat list
-- 8+: group by phase. Add warning: "This plan had unusually high ambiguity ([N] taste decisions). Review carefully."
+**认知负荷管理：**
+- 0 个品味决策：跳过"你的选择"部分
+- 1-7 个品味决策：平铺列表
+- 8+ 个：按阶段分组。添加警告："此计划有异常高的模糊性（[N] 个品味决策）。仔细审查。"
 
-AskUserQuestion options:
-- A) Approve as-is (accept all recommendations)
-- B) Approve with overrides (specify which taste decisions to change)
-- C) Interrogate (ask about any specific decision)
-- D) Revise (the plan itself needs changes)
-- E) Reject (start over)
+AskUserQuestion 选项：
+- A) 原样批准（接受所有建议）
+- B) 批准但有覆盖（指定要更改哪些品味决策）
+- C) 询问（询问任何具体决策）
+- D) 修订（计划本身需要更改）
+- E) 拒绝（重新开始）
 
-**Option handling:**
-- A: mark APPROVED, write review logs, suggest /ship
-- B: ask which overrides, apply, re-present gate
-- C: answer freeform, re-present gate
-- D: make changes, re-run affected phases (scope→1B, design→2, test plan→3, arch→3). Max 3 cycles.
-- E: start over
+**选项处理：**
+- A：标记 APPROVED，写入审查日志，建议 /ship
+- B：问哪些覆盖，应用，重新呈现门
+- C：自由回答，重新呈现门
+- D：做更改，重新运行受影响的阶段（范围→1B，设计→2，测试计划→3，架构→3）。最多 3 个循环。
+- E：重新开始
 
 ---
 
-## Completion: Write Review Logs
+## 完成：写入审查日志
 
-On approval, write 3 separate review log entries so /ship's dashboard recognizes them:
+批准后，写入 3 个单独的审查日志条目，以便 /ship 的仪表板识别它们：
 
 ```bash
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null)
@@ -737,22 +661,22 @@ TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 ~/.claude/skills/gstack/bin/gstack-review-log '{"skill":"plan-eng-review","timestamp":"'"$TIMESTAMP"'","status":"clean","unresolved":0,"critical_gaps":0,"issues_found":0,"mode":"FULL_REVIEW","via":"autoplan","commit":"'"$COMMIT"'"}'
 ```
 
-If Phase 2 ran (UI scope):
+如果阶段 2 运行了（UI 范围）：
 ```bash
 ~/.claude/skills/gstack/bin/gstack-review-log '{"skill":"plan-design-review","timestamp":"'"$TIMESTAMP"'","status":"clean","unresolved":0,"via":"autoplan","commit":"'"$COMMIT"'"}'
 ```
 
-Replace field values with actual counts from the review.
+用审查中的实际计数替换字段值。
 
-Suggest next step: `/ship` when ready to create the PR.
+建议下一步：准备好时 `/ship`。
 
 ---
 
-## Important Rules
+## 重要规则
 
-- **Never abort.** The user chose /autoplan. Respect that choice. Surface all taste decisions, never redirect to interactive review.
-- **Premises are the one gate.** The only non-auto-decided AskUserQuestion is the premise confirmation in Phase 1.
-- **Log every decision.** No silent auto-decisions. Every choice gets a row in the audit trail.
-- **Full depth means full depth.** Do not compress or skip sections from the loaded skill files (except the skip list in Phase 0). "Full depth" means: read the code the section asks you to read, produce the outputs the section requires, identify every issue, and decide each one. A one-sentence summary of a section is not "full depth" — it is a skip. If you catch yourself writing fewer than 3 sentences for any review section, you are likely compressing.
-- **Artifacts are deliverables.** Test plan artifact, failure modes registry, error/rescue table, ASCII diagrams — these must exist on disk or in the plan file when the review completes. If they don't exist, the review is incomplete.
-- **Sequential order.** CEO → Design → Eng. Each phase builds on the last.
+- **永不中止。** 用户选择了 /autoplan。尊重这个选择。呈现所有品味决策，永远不要重定向到交互式审查。
+- **前提是唯一的门。** 唯一一个非自动决定的 AskUserQuestion 是阶段 1 中的前提确认。
+- **记录每个决策。** 没有无声的自动决策。每个选择都在审计日志中有一行。
+- **全深度意味着全深度。** 不要压缩或跳过加载 skill 文件中的部分（除了阶段 0 的跳过列表）。"全深度"意味着：阅读部分要求你阅读的代码，生成部分要求的输出，识别每个问题，决定每个问题。如果你发现自己为任何审查部分写的少于 3 句话，你可能正在压缩。
+- **工件是可交付成果。** 测试计划工件、故障模式注册表、错误/救援表、ASCII 图——审查完成时这些必须存在于磁盘或计划文件中。如果不存在，审查就不完整。
+- **顺序执行。** CEO → 设计 → 工程。每个阶段建立在前一个之上。
