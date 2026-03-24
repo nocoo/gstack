@@ -2,11 +2,10 @@
 name: careful
 version: 0.1.0
 description: |
-  Safety guardrails for destructive commands. Warns before rm -rf, DROP TABLE,
-  force-push, git reset --hard, kubectl delete, and similar destructive operations.
-  User can override each warning. Use when touching prod, debugging live systems,
-  or working in a shared environment. Use when asked to "be careful", "safety mode",
-  "prod mode", or "careful mode".
+  危险命令的安全护栏。在 rm -rf、DROP TABLE、force-push、git reset --hard、
+  kubectl delete 等危险操作之前发出警告。用户可以覆盖每个警告。
+  用于接触生产环境、调试在线系统或在共享环境中工作。
+  当被要求"小心"、"安全模式"、"prod 模式"或"careful 模式"时使用。
 allowed-tools:
   - Bash
   - Read
@@ -17,43 +16,43 @@ hooks:
         - type: command
           command: "bash ${CLAUDE_SKILL_DIR}/bin/check-careful.sh"
           statusMessage: "Checking for destructive commands..."
+
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
-# /careful — Destructive Command Guardrails
+# /careful — 危险命令护栏
 
-Safety mode is now **active**. Every bash command will be checked for destructive
-patterns before running. If a destructive command is detected, you'll be warned
-and can choose to proceed or cancel.
+安全模式现已**激活**。每个 bash 命令在运行前都会检查危险模式。
+如果检测到危险命令，将发出警告，你可以选择继续或取消。
 
 ```bash
 mkdir -p ~/.gstack/analytics
 echo '{"skill":"careful","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.gstack/analytics/skill-usage.jsonl 2>/dev/null || true
 ```
 
-## What's protected
+## 受保护的内容
 
-| Pattern | Example | Risk |
+| 模式 | 示例 | 风险 |
 |---------|---------|------|
-| `rm -rf` / `rm -r` / `rm --recursive` | `rm -rf /var/data` | Recursive delete |
-| `DROP TABLE` / `DROP DATABASE` | `DROP TABLE users;` | Data loss |
-| `TRUNCATE` | `TRUNCATE orders;` | Data loss |
-| `git push --force` / `-f` | `git push -f origin main` | History rewrite |
-| `git reset --hard` | `git reset --hard HEAD~3` | Uncommitted work loss |
-| `git checkout .` / `git restore .` | `git checkout .` | Uncommitted work loss |
-| `kubectl delete` | `kubectl delete pod` | Production impact |
-| `docker rm -f` / `docker system prune` | `docker system prune -a` | Container/image loss |
+| `rm -rf` / `rm -r` / `rm --recursive` | `rm -rf /var/data` | 递归删除 |
+| `DROP TABLE` / `DROP DATABASE` | `DROP TABLE users;` | 数据丢失 |
+| `TRUNCATE` | `TRUNCATE orders;` | 数据丢失 |
+| `git push --force` / `-f` | `git push -f origin main` | 历史重写 |
+| `git reset --hard` | `git reset --hard HEAD~3` | 未提交工作丢失 |
+| `git checkout .` / `git restore .` | `git checkout .` | 未提交工作丢失 |
+| `kubectl delete` | `kubectl delete pod` | 生产环境受影响 |
+| `docker rm -f` / `docker system prune` | `docker system prune -a` | 容器/镜像丢失 |
 
-## Safe exceptions
+## 安全例外
 
-These patterns are allowed without warning:
+以下模式无需警告：
 - `rm -rf node_modules` / `.next` / `dist` / `__pycache__` / `.cache` / `build` / `.turbo` / `coverage`
 
-## How it works
+## 工作原理
 
-The hook reads the command from the tool input JSON, checks it against the
-patterns above, and returns `permissionDecision: "ask"` with a warning message
-if a match is found. You can always override the warning and proceed.
+Hook 从工具输入 JSON 中读取命令，根据上述模式检查它，
+如果发现匹配则返回 `permissionDecision: "ask"` 并附带警告消息。
+你始终可以覆盖警告并继续。
 
-To deactivate, end the conversation or start a new one. Hooks are session-scoped.
+要停用，请结束对话或开始新对话。Hook 是会话范围的。
