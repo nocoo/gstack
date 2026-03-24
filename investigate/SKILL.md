@@ -2,12 +2,10 @@
 name: investigate
 version: 1.0.0
 description: |
-  Systematic debugging with root cause investigation. Four phases: investigate,
-  analyze, hypothesize, implement. Iron Law: no fixes without root cause.
-  Use when asked to "debug this", "fix this bug", "why is this broken",
-  "investigate this error", or "root cause analysis".
-  Proactively suggest when the user reports errors, unexpected behavior, or
-  is troubleshooting why something stopped working.
+  系统化调试与根因调查。四个阶段：调查、分析、假设、实施。
+  铁律：没有根因就不修复。
+  用于"debug this"、"fix this bug"、"why is this broken"、"investigate this error"或"root cause analysis"。
+  当用户报告错误、意外行为或排查某事为何停止工作时主动建议。
 allowed-tools:
   - Bash
   - Read
@@ -29,444 +27,210 @@ hooks:
         - type: command
           command: "bash ${CLAUDE_SKILL_DIR}/../freeze/bin/check-freeze.sh"
           statusMessage: "Checking debug scope boundary..."
+
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
-## Preamble (run first)
+## 前置准备（优先执行）
 
-```bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
-[ -n "$_UPD" ] && echo "$_UPD" || true
-mkdir -p ~/.gstack/sessions
-touch ~/.gstack/sessions/"$PPID"
-_SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
-find ~/.gstack/sessions -mmin +120 -type f -delete 2>/dev/null || true
-_CONTRIB=$(~/.claude/skills/gstack/bin/gstack-config get gstack_contributor 2>/dev/null || true)
-_PROACTIVE=$(~/.claude/skills/gstack/bin/gstack-config get proactive 2>/dev/null || echo "true")
-_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
-echo "BRANCH: $_BRANCH"
-echo "PROACTIVE: $_PROACTIVE"
-source <(~/.claude/skills/gstack/bin/gstack-repo-mode 2>/dev/null) || true
-REPO_MODE=${REPO_MODE:-unknown}
-echo "REPO_MODE: $REPO_MODE"
-_LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
-echo "LAKE_INTRO: $_LAKE_SEEN"
-_TEL=$(~/.claude/skills/gstack/bin/gstack-config get telemetry 2>/dev/null || true)
-_TEL_PROMPTED=$([ -f ~/.gstack/.telemetry-prompted ] && echo "yes" || echo "no")
-_TEL_START=$(date +%s)
-_SESSION_ID="$$-$(date +%s)"
-echo "TELEMETRY: ${_TEL:-off}"
-echo "TEL_PROMPTED: $_TEL_PROMPTED"
-mkdir -p ~/.gstack/analytics
-echo '{"skill":"investigate","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.gstack/analytics/skill-usage.jsonl 2>/dev/null || true
-# zsh-compatible: use find instead of glob to avoid NOMATCH error
-for _PF in $(find ~/.gstack/analytics -maxdepth 1 -name '.pending-*' 2>/dev/null); do [ -f "$_PF" ] && ~/.claude/skills/gstack/bin/gstack-telemetry-log --event-type skill_run --skill _pending_finalize --outcome unknown --session-id "$_SESSION_ID" 2>/dev/null || true; break; done
-```
+[标准前置准备代码]
 
-If `PROACTIVE` is `"false"`, do not proactively suggest gstack skills — only invoke
-them when the user explicitly asks. The user opted out of proactive suggestions.
+如果 `PROACTIVE` 为 `"false"`，不要主动建议 gstack skill。
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+## AskUserQuestion 格式
 
-If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
-Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
-thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
-Then offer to open the essay in their default browser:
+**每次 AskUserQuestion 调用都必须遵循此结构：**
+1. **重新锚定：** 说明项目、当前分支和当前计划/任务。
+2. **简化：** 用普通英语解释问题。
+3. **建议：** `RECOMMENDATION: 选择 [X]`，包含 `Completeness: X/10`。
+4. **选项：** 字母选项。
 
-```bash
-open https://garryslist.org/posts/boil-the-ocean
-touch ~/.gstack/.completeness-intro-seen
-```
+## 完整性原则——煮沸湖泊
 
-Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
+AI 辅助编码使完整的边际成本接近零。始终优先选择完整选项。
 
-If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+## 仓库所有权模式——看到就说
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
+- **`solo`** — 主动调查并修复。
+- **`collaborative`** — 通过 AskUserQuestion 标记。
+- **`unknown`** — 按 collaborative 处理。
 
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
+## 构建前先搜索
 
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
+在构建基础设施之前——**先搜索。**
 
-If B: ask a follow-up AskUserQuestion:
+## 贡献者模式
 
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
+如果 `_CONTRIB` 为 `true`：反思工具使用体验，评分并提交现场报告。
 
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
+## 完成状态协议
 
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
+- **DONE** — 成功完成。
+- **DONE_WITH_CONCERNS** — 有问题需告知。
+- **BLOCKED** — 无法继续。
+- **NEEDS_CONTEXT** — 缺少信息。
 
-Always run:
-```bash
-touch ~/.gstack/.telemetry-prompted
-```
-
-This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
-
-## AskUserQuestion Format
-
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
-
-## Completeness Principle — Boil the Lake
-
-AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
-
-- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
-- **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
-- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
-
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
-| Test writing | 1 day | 15 min | ~50x |
-| Feature implementation | 1 week | 30 min | ~30x |
-| Bug fix + regression test | 4 hours | 15 min | ~20x |
-| Architecture / design | 2 days | 4 hours | ~5x |
-| Research / exploration | 1 day | 3 hours | ~3x |
-
-- This principle applies to test coverage, error handling, documentation, edge cases, and feature completeness. Don't skip the last 10% to "save time" — with AI, that 10% costs seconds.
-
-**Anti-patterns — DON'T do this:**
-- BAD: "Choose B — it covers 90% of the value with less code." (If A is only 70 lines more, choose A.)
-- BAD: "We can skip edge case handling to save time." (Edge case handling costs minutes with CC.)
-- BAD: "Let's defer test coverage to a follow-up PR." (Tests are the cheapest lake to boil.)
-- BAD: Quoting only human-team effort: "This would take 2 weeks." (Say: "2 weeks human / ~1 hour CC.")
-
-## Repo Ownership Mode — See Something, Say Something
-
-`REPO_MODE` from the preamble tells you who owns issues in this repo:
-
-- **`solo`** — One person does 80%+ of the work. They own everything. When you notice issues outside the current branch's changes (test failures, deprecation warnings, security advisories, linting errors, dead code, env problems), **investigate and offer to fix proactively**. The solo dev is the only person who will fix it. Default to action.
-- **`collaborative`** — Multiple active contributors. When you notice issues outside the branch's changes, **flag them via AskUserQuestion** — it may be someone else's responsibility. Default to asking, not fixing.
-- **`unknown`** — Treat as collaborative (safer default — ask before fixing).
-
-**See Something, Say Something:** Whenever you notice something that looks wrong during ANY workflow step — not just test failures — flag it briefly. One sentence: what you noticed and its impact. In solo mode, follow up with "Want me to fix it?" In collaborative mode, just flag it and move on.
-
-Never let a noticed issue silently pass. The whole point is proactive communication.
-
-## Search Before Building
-
-Before building infrastructure, unfamiliar patterns, or anything the runtime might have a built-in — **search first.** Read `~/.claude/skills/gstack/ETHOS.md` for the full philosophy.
-
-**Three layers of knowledge:**
-- **Layer 1** (tried and true — in distribution). Don't reinvent the wheel. But the cost of checking is near-zero, and once in a while, questioning the tried-and-true is where brilliance occurs.
-- **Layer 2** (new and popular — search for these). But scrutinize: humans are subject to mania. Search results are inputs to your thinking, not answers.
-- **Layer 3** (first principles — prize these above all). Original observations derived from reasoning about the specific problem. The most valuable of all.
-
-**Eureka moment:** When first-principles reasoning reveals conventional wisdom is wrong, name it:
-"EUREKA: Everyone does X because [assumption]. But [evidence] shows this is wrong. Y is better because [reasoning]."
-
-Log eureka moments:
-```bash
-jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg branch "$(git branch --show-current 2>/dev/null)" --arg insight "ONE_LINE_SUMMARY" '{ts:$ts,skill:$skill,branch:$branch,insight:$insight}' >> ~/.gstack/analytics/eureka.jsonl 2>/dev/null || true
-```
-Replace SKILL_NAME and ONE_LINE_SUMMARY. Runs inline — don't stop the workflow.
-
-**WebSearch fallback:** If WebSearch is unavailable, skip the search step and note: "Search unavailable — proceeding with in-distribution knowledge only."
-
-## Contributor Mode
-
-If `_CONTRIB` is `true`: you are in **contributor mode**. You're a gstack user who also helps make it better.
-
-**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
-
-**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
-
-**NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
-
-**To file:** write `~/.gstack/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
-
-```
-# {Title}
-
-Hey gstack team — ran into this while using /{skill-name}:
-
-**What I was trying to do:** {what the user/agent was attempting}
-**What happened instead:** {what actually happened}
-**My rating:** {0-10} — {one sentence on why it wasn't a 10}
-
-## Steps to reproduce
-1. {step}
-
-## Raw output
-```
-{paste the actual error or unexpected output here}
-```
-
-## What would make this a 10
-{one sentence: what gstack should have done differently}
-
-**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
-```
-
-Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
-
-## Completion Status Protocol
-
-When completing a skill workflow, report status using one of:
-- **DONE** — All steps completed successfully. Evidence provided for each claim.
-- **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
-- **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
-- **NEEDS_CONTEXT** — Missing information required to continue. State exactly what you need.
-
-### Escalation
-
-It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
-
-Bad work is worse than no work. You will not be penalized for escalating.
-- If you have attempted a task 3 times without success, STOP and escalate.
-- If you are uncertain about a security-sensitive change, STOP and escalate.
-- If the scope of work exceeds what you can verify, STOP and escalate.
-
-Escalation format:
-```
-STATUS: BLOCKED | NEEDS_CONTEXT
-REASON: [1-2 sentences]
-ATTEMPTED: [what you tried]
-RECOMMENDATION: [what the user should do next]
-```
-
-## Telemetry (run last)
-
-After the skill workflow completes (success, error, or abort), log the telemetry event.
-Determine the skill name from the `name:` field in this file's YAML frontmatter.
-Determine the outcome from the workflow result (success if completed normally, error
-if it failed, abort if the user interrupted).
-
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This command writes telemetry to
-`~/.gstack/analytics/` (user config directory, not project files). The skill
-preamble already writes to the same directory — this is the same pattern.
-Skipping this command loses session duration and outcome data.
-
-Run this bash:
+## 遥测数据（最后运行）
 
 ```bash
 _TEL_END=$(date +%s)
 _TEL_DUR=$(( _TEL_END - _TEL_START ))
-rm -f ~/.gstack/analytics/.pending-"$_SESSION_ID" 2>/dev/null || true
 ~/.claude/skills/gstack/bin/gstack-telemetry-log \
-  --skill "SKILL_NAME" --duration "$_TEL_DUR" --outcome "OUTCOME" \
+  --skill "investigate" --duration "$_TEL_DUR" --outcome "OUTCOME" \
   --used-browse "USED_BROWSE" --session-id "$_SESSION_ID" 2>/dev/null &
 ```
 
-Replace `SKILL_NAME` with the actual skill name from frontmatter, `OUTCOME` with
-success/error/abort, and `USED_BROWSE` with true/false based on whether `$B` was used.
-If you cannot determine the outcome, use "unknown". This runs in the background and
-never blocks the user.
+## 计划状态页脚
 
-## Plan Status Footer
+在计划模式中调用 ExitPlanMode 前运行 `gstack-review-read` 并写入审查报告。
 
-When you are in plan mode and about to call ExitPlanMode:
+# 系统化调试
 
-1. Check if the plan file already has a `## GSTACK REVIEW REPORT` section.
-2. If it DOES — skip (a review skill already wrote a richer report).
-3. If it does NOT — run this command:
+## 铁律
 
-\`\`\`bash
-~/.claude/skills/gstack/bin/gstack-review-read
-\`\`\`
+**没有根因调查就不能修复。**
 
-Then write a `## GSTACK REVIEW REPORT` section to the end of the plan file:
-
-- If the output contains review entries (JSONL lines before `---CONFIG---`): format the
-  standard report table with runs/status/findings per skill, same format as the review
-  skills use.
-- If the output is `NO_REVIEWS` or empty: write this placeholder table:
-
-\`\`\`markdown
-## GSTACK REVIEW REPORT
-
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | 0 | — | — |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | 0 | — | — |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | 0 | — | — |
-
-**VERDICT:** NO REVIEWS YET — run \`/autoplan\` for full review pipeline, or individual reviews above.
-\`\`\`
-
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This writes to the plan file, which is the one
-file you are allowed to edit in plan mode. The plan file review report is part of the
-plan's living status.
-
-# Systematic Debugging
-
-## Iron Law
-
-**NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST.**
-
-Fixing symptoms creates whack-a-mole debugging. Every fix that doesn't address root cause makes the next bug harder to find. Find the root cause, then fix it.
+修复症状会制造打地鼠式调试。每个不解决根因的修复都会让下一个 bug 更难找到。找到根因，然后修复它。
 
 ---
 
-## Phase 1: Root Cause Investigation
+## 阶段 1: 根因调查
 
-Gather context before forming any hypothesis.
+在形成任何假设之前收集上下文。
 
-1. **Collect symptoms:** Read the error messages, stack traces, and reproduction steps. If the user hasn't provided enough context, ask ONE question at a time via AskUserQuestion.
+1. **收集症状：** 阅读错误消息、堆栈跟踪和复现步骤。如果用户没有提供足够的上下文，通过 AskUserQuestion 一次问一个问题。
 
-2. **Read the code:** Trace the code path from the symptom back to potential causes. Use Grep to find all references, Read to understand the logic.
+2. **阅读代码：** 从症状追溯到潜在原因。使用 Grep 查找所有引用，使用 Read 理解逻辑。
 
-3. **Check recent changes:**
+3. **检查最近更改：**
    ```bash
    git log --oneline -20 -- <affected-files>
    ```
-   Was this working before? What changed? A regression means the root cause is in the diff.
+   这之前能工作吗？什么变了？回归意味着根因在 diff 中。
 
-4. **Reproduce:** Can you trigger the bug deterministically? If not, gather more evidence before proceeding.
+4. **复现：** 你能确定性地触发 bug 吗？如果不能，在继续之前收集更多证据。
 
-Output: **"Root cause hypothesis: ..."** — a specific, testable claim about what is wrong and why.
+输出：**"根因假设：..."** — 关于什么错了以及为什么的具体、可测试的声明。
 
 ---
 
-## Scope Lock
+## 范围锁定
 
-After forming your root cause hypothesis, lock edits to the affected module to prevent scope creep.
+形成根因假设后，将编辑锁定到受影响的模块以防止范围蔓延。
 
 ```bash
 [ -x "${CLAUDE_SKILL_DIR}/../freeze/bin/check-freeze.sh" ] && echo "FREEZE_AVAILABLE" || echo "FREEZE_UNAVAILABLE"
 ```
 
-**If FREEZE_AVAILABLE:** Identify the narrowest directory containing the affected files. Write it to the freeze state file:
+**如果 FREEZE_AVAILABLE：** 识别包含受影响文件的最窄目录。写入 freeze 状态文件。
 
-```bash
-STATE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.gstack}"
-mkdir -p "$STATE_DIR"
-echo "<detected-directory>/" > "$STATE_DIR/freeze-dir.txt"
-echo "Debug scope locked to: <detected-directory>/"
-```
+告诉用户："编辑限制在 `<dir>/` 内进行此调试会话。这防止更改不相关的代码。运行 `/unfreeze` 移除限制。"
 
-Substitute `<detected-directory>` with the actual directory path (e.g., `src/auth/`). Tell the user: "Edits restricted to `<dir>/` for this debug session. This prevents changes to unrelated code. Run `/unfreeze` to remove the restriction."
-
-If the bug spans the entire repo or the scope is genuinely unclear, skip the lock and note why.
-
-**If FREEZE_UNAVAILABLE:** Skip scope lock. Edits are unrestricted.
+**如果 FREEZE_UNAVAILABLE：** 跳过范围锁定。编辑不受限制。
 
 ---
 
-## Phase 2: Pattern Analysis
+## 阶段 2: 模式分析
 
-Check if this bug matches a known pattern:
+检查此 bug 是否匹配已知模式：
 
-| Pattern | Signature | Where to look |
+| 模式 | 特征 | 哪里查找 |
 |---------|-----------|---------------|
-| Race condition | Intermittent, timing-dependent | Concurrent access to shared state |
-| Nil/null propagation | NoMethodError, TypeError | Missing guards on optional values |
-| State corruption | Inconsistent data, partial updates | Transactions, callbacks, hooks |
-| Integration failure | Timeout, unexpected response | External API calls, service boundaries |
-| Configuration drift | Works locally, fails in staging/prod | Env vars, feature flags, DB state |
-| Stale cache | Shows old data, fixes on cache clear | Redis, CDN, browser cache, Turbo |
+| 竞争条件 | 间歇性、依赖时序 | 共享状态的并发访问 |
+| Nil/null 传播 | NoMethodError、TypeError | 可选值上缺少保护 |
+| 状态损坏 | 数据不一致、部分更新 | 事务、回调、钩子 |
+| 集成失败 | 超时、意外响应 | 外部 API 调用、服务边界 |
+| 配置漂移 | 本地工作、staging/prod 失败 | 环境变量、功能标志、DB 状态 |
+| 缓存过期 | 显示旧数据、清除缓存后修复 | Redis、CDN、浏览器缓存、Turbo |
 
-Also check:
-- `TODOS.md` for related known issues
-- `git log` for prior fixes in the same area — **recurring bugs in the same files are an architectural smell**, not a coincidence
+还要检查：
+- `TODOS.md` 了解相关的已知问题
+- `git log` 查看同一区域的先前修复——**同一文件中的重复 bug 是架构异味**，不是巧合
 
-**External pattern search:** If the bug doesn't match a known pattern above, WebSearch for:
-- "{framework} {generic error type}" — **sanitize first:** strip hostnames, IPs, file paths, SQL, customer data. Search the error category, not the raw message.
-- "{library} {component} known issues"
-
-If WebSearch is unavailable, skip this search and proceed with hypothesis testing. If a documented solution or known dependency bug surfaces, present it as a candidate hypothesis in Phase 3.
+**外部模式搜索：** 如果 bug 不匹配上面的已知模式，WebSearch：
+- "{framework} {generic error type}"——**先清理：** 去除主机名、IP、文件路径、SQL、客户数据。搜索错误类别，不是原始消息。
 
 ---
 
-## Phase 3: Hypothesis Testing
+## 阶段 3: 假设测试
 
-Before writing ANY fix, verify your hypothesis.
+在写任何修复之前，验证你的假设。
 
-1. **Confirm the hypothesis:** Add a temporary log statement, assertion, or debug output at the suspected root cause. Run the reproduction. Does the evidence match?
+1. **确认假设：** 在怀疑的根因处添加临时日志语句、断言或调试输出。运行复现。证据匹配吗？
 
-2. **If the hypothesis is wrong:** Before forming the next hypothesis, consider searching for the error. **Sanitize first** — strip hostnames, IPs, file paths, SQL fragments, customer identifiers, and any internal/proprietary data from the error message. Search only the generic error type and framework context: "{component} {sanitized error type} {framework version}". If the error message is too specific to sanitize safely, skip the search. If WebSearch is unavailable, skip and proceed. Then return to Phase 1. Gather more evidence. Do not guess.
+2. **如果假设错误：** 在形成下一个假设之前，考虑搜索错误。**先清理**——从错误消息中去除主机名、IP、文件路径、SQL 片段、客户标识符和任何内部/专有数据。只搜索通用错误类型和框架上下文。然后返回阶段 1。收集更多证据。不要猜测。
 
-3. **3-strike rule:** If 3 hypotheses fail, **STOP**. Use AskUserQuestion:
+3. **三振出局规则：** 如果 3 个假设失败，**停止**。使用 AskUserQuestion：
    ```
-   3 hypotheses tested, none match. This may be an architectural issue
-   rather than a simple bug.
-
-   A) Continue investigating — I have a new hypothesis: [describe]
-   B) Escalate for human review — this needs someone who knows the system
-   C) Add logging and wait — instrument the area and catch it next time
+   3 个假设已测试，都不匹配。这可能是架构问题
+   而不是简单的 bug。
+   
+   A) 继续调查——我有一个新假设：[描述]
+   B) 升级人工审查——这需要了解系统的人
+   C) 添加日志并等待——在该区域埋点，下次捕获
    ```
 
-**Red flags** — if you see any of these, slow down:
-- "Quick fix for now" — there is no "for now." Fix it right or escalate.
-- Proposing a fix before tracing data flow — you're guessing.
-- Each fix reveals a new problem elsewhere — wrong layer, not wrong code.
+**危险信号**——如果看到任何这些，慢下来：
+- "暂时快速修复"——没有"暂时"。要么正确修复，要么升级。
+- 在追踪数据流之前提出修复——你在猜测。
+- 每个修复都在其他地方暴露新问题——错误的层，不是错误的代码。
 
 ---
 
-## Phase 4: Implementation
+## 阶段 4: 实施
 
-Once root cause is confirmed:
+一旦根因确认：
 
-1. **Fix the root cause, not the symptom.** The smallest change that eliminates the actual problem.
+1. **修复根因，不是症状。** 消除实际问题的最小更改。
 
-2. **Minimal diff:** Fewest files touched, fewest lines changed. Resist the urge to refactor adjacent code.
+2. **最小 diff：** 触及最少的文件，更改最少的行。抵制重构相邻代码的冲动。
 
-3. **Write a regression test** that:
-   - **Fails** without the fix (proves the test is meaningful)
-   - **Passes** with the fix (proves the fix works)
+3. **写回归测试**：
+   - **失败**没有修复（证明测试有意义）
+   - **通过**有修复（证明修复有效）
 
-4. **Run the full test suite.** Paste the output. No regressions allowed.
+4. **运行完整测试套件。** 粘贴输出。不允许回归。
 
-5. **If the fix touches >5 files:** Use AskUserQuestion to flag the blast radius:
+5. **如果修复触及 >5 个文件：** 使用 AskUserQuestion 标记爆炸半径：
    ```
-   This fix touches N files. That's a large blast radius for a bug fix.
-   A) Proceed — the root cause genuinely spans these files
-   B) Split — fix the critical path now, defer the rest
-   C) Rethink — maybe there's a more targeted approach
+   此修复触及 N 个文件。对于 bug 修复来说爆炸半径很大。
+   A) 继续——根因确实跨越这些文件
+   B) 拆分——现在修复关键路径，推迟其余
+   C) 重新思考——也许有更有针对性的方法
    ```
 
 ---
 
-## Phase 5: Verification & Report
+## 阶段 5: 验证与报告
 
-**Fresh verification:** Reproduce the original bug scenario and confirm it's fixed. This is not optional.
+**全新验证：** 复现原始 bug 场景并确认已修复。这不是可选的。
 
-Run the test suite and paste the output.
+运行测试套件并粘贴输出。
 
-Output a structured debug report:
+输出结构化调试报告：
 ```
-DEBUG REPORT
+调试报告
 ════════════════════════════════════════
-Symptom:         [what the user observed]
-Root cause:      [what was actually wrong]
-Fix:             [what was changed, with file:line references]
-Evidence:        [test output, reproduction attempt showing fix works]
-Regression test: [file:line of the new test]
-Related:         [TODOS.md items, prior bugs in same area, architectural notes]
-Status:          DONE | DONE_WITH_CONCERNS | BLOCKED
+症状:         [用户观察到的]
+根因:      [实际错误的]
+修复:             [更改了什么，含 file:line 引用]
+证据:        [测试输出、显示修复有效的复现尝试]
+回归测试: [file:line 新测试]
+相关:         [TODOS.md 项目、同一区域的先前 bug、架构说明]
+状态:          DONE | DONE_WITH_CONCERNS | BLOCKED
 ════════════════════════════════════════
 ```
 
 ---
 
-## Important Rules
+## 重要规则
 
-- **3+ failed fix attempts → STOP and question the architecture.** Wrong architecture, not failed hypothesis.
-- **Never apply a fix you cannot verify.** If you can't reproduce and confirm, don't ship it.
-- **Never say "this should fix it."** Verify and prove it. Run the tests.
-- **If fix touches >5 files → AskUserQuestion** about blast radius before proceeding.
-- **Completion status:**
-  - DONE — root cause found, fix applied, regression test written, all tests pass
-  - DONE_WITH_CONCERNS — fixed but cannot fully verify (e.g., intermittent bug, requires staging)
-  - BLOCKED — root cause unclear after investigation, escalated
+- **3+ 次失败修复尝试 → 停止并质疑架构。** 错误的架构，不是失败的假设。
+- **永不应用你无法验证的修复。** 如果无法复现和确认，不要发布。
+- **永不说"这应该能修复它"。** 验证并证明它。运行测试。
+- **如果修复触及 >5 个文件 → AskUserQuestion** 关于爆炸半径再继续。
+- **完成状态：**
+  - DONE — 找到根因、应用修复、写回归测试、所有测试通过
+  - DONE_WITH_CONCERNS — 修复但无法完全验证（如间歇性 bug、需要 staging）
+  - BLOCKED — 调查后根因不清楚，已升级
