@@ -2,22 +2,22 @@
 name: benchmark
 version: 1.0.0
 description: |
-  Performance regression detection using the browse daemon. Establishes
-  baselines for page load times, Core Web Vitals, and resource sizes.
-  Compares before/after on every PR. Tracks performance trends over time.
-  Use when: "performance", "benchmark", "page speed", "lighthouse", "web vitals",
-  "bundle size", "load time".
+  使用 browse 守护进程进行性能回归检测。为页面加载时间、Core Web Vitals
+  和资源大小建立基准。每次 PR 进行前后对比。追踪性能随时间的变化趋势。
+  用于："performance"、"benchmark"、"page speed"、"lighthouse"、"web vitals"、
+  "bundle size"、"load time"。
 allowed-tools:
   - Bash
   - Read
   - Write
   - Glob
   - AskUserQuestion
+
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
-## Preamble (run first)
+## 前置准备（优先执行）
 
 ```bash
 _UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
@@ -48,252 +48,67 @@ echo '{"skill":"benchmark","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(ba
 for _PF in $(find ~/.gstack/analytics -maxdepth 1 -name '.pending-*' 2>/dev/null); do [ -f "$_PF" ] && ~/.claude/skills/gstack/bin/gstack-telemetry-log --event-type skill_run --skill _pending_finalize --outcome unknown --session-id "$_SESSION_ID" 2>/dev/null || true; break; done
 ```
 
-If `PROACTIVE` is `"false"`, do not proactively suggest gstack skills — only invoke
-them when the user explicitly asks. The user opted out of proactive suggestions.
+如果 `PROACTIVE` 为 `"false"`，不要主动建议 gstack skill——只在用户明确要求时才调用。
+用户已选择关闭主动建议。
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+如果输出显示 `UPGRADE_AVAILABLE <旧版本> <新版本>`：阅读 `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` 并遵循"内联升级流程"。如果显示 `JUST_UPGRADED <从> <到>`：告诉用户"正在运行 gstack v{到}（刚刚更新！）"并继续。
 
-If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
-Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
-thing when AI makes the marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean"
-Then offer to open the essay in their default browser:
+如果 `LAKE_INTRO` 为 `no`：介绍"完整性原则"。告诉用户："gstack 遵循**煮沸湖泊**原则——当 AI 让边际成本接近零时，总是做完整的事情。"
 
-```bash
-open https://garryslist.org/posts/boil-the-ocean
-touch ~/.gstack/.completeness-intro-seen
-```
+如果 `TEL_PROMPTED` 为 `no` 且 `LAKE_INTRO` 为 `yes`：询问关于遥测数据。
 
-Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
+## AskUserQuestion 格式
 
-If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+**每次 AskUserQuestion 调用都必须遵循此结构：**
+1. **重新锚定：** 说明项目、当前分支和当前计划/任务。（1-2 句话）
+2. **简化：** 用普通英语解释问题，连聪明的 16 岁孩子都能理解。
+3. **建议：** `RECOMMENDATION: 选择 [X]，因为 [一句话原因]`。包含 `Completeness: X/10`。
+4. **选项：** 字母选项：`A) ... B) ... C) ...`
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
+## 完整性原则——煮沸湖泊
 
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
+AI 辅助编码使完整的边际成本接近零。当呈现选项时，始终优先选择完整选项。
 
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
+## 仓库所有权模式——看到就说
 
-If B: ask a follow-up AskUserQuestion:
+- **`solo`** — 主动调查并提出修复。
+- **`collaborative`** — 通过 AskUserQuestion 标记。
+- **`unknown`** — 按 collaborative 处理。
 
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
+## 构建前先搜索
 
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
+在构建基础设施之前——**先搜索。** 阅读 `~/.claude/skills/gstack/ETHOS.md`。
 
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
+## 贡献者模式
 
-Always run:
-```bash
-touch ~/.gstack/.telemetry-prompted
-```
+如果 `_CONTRIB` 为 `true`：反思你使用的 gstack 工具。评分 0 到 10。如果不是 10，提交现场报告。
 
-This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
+## 完成状态协议
 
-## AskUserQuestion Format
+- **DONE** — 所有步骤成功完成。
+- **DONE_WITH_CONCERNS** — 完成，但有问题。
+- **BLOCKED** — 无法继续。
+- **NEEDS_CONTEXT** — 缺少继续所需的信息。
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
+### 升级
 
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
+说"这对我来说太难了"永远是可以的。
 
-Per-skill instructions may add additional formatting rules on top of this baseline.
-
-## Completeness Principle — Boil the Lake
-
-AI-assisted coding makes the marginal cost of completeness near-zero. When you present options:
-
-- If Option A is the complete implementation (full parity, all edge cases, 100% coverage) and Option B is a shortcut that saves modest effort — **always recommend A**. The delta between 80 lines and 150 lines is meaningless with CC+gstack. "Good enough" is the wrong instinct when "complete" costs minutes more.
-- **Lake vs. ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, handling all edge cases, complete error paths. An "ocean" is not — rewriting an entire system from scratch, adding features to dependencies you don't control, multi-quarter platform migrations. Recommend boiling lakes. Flag oceans as out of scope.
-- **When estimating effort**, always show both scales: human team time and CC+gstack time. The compression ratio varies by task type — use this reference:
-
-| Task type | Human team | CC+gstack | Compression |
-|-----------|-----------|-----------|-------------|
-| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
-| Test writing | 1 day | 15 min | ~50x |
-| Feature implementation | 1 week | 30 min | ~30x |
-| Bug fix + regression test | 4 hours | 15 min | ~20x |
-| Architecture / design | 2 days | 4 hours | ~5x |
-| Research / exploration | 1 day | 3 hours | ~3x |
-
-- This principle applies to test coverage, error handling, documentation, edge cases, and feature completeness. Don't skip the last 10% to "save time" — with AI, that 10% costs seconds.
-
-**Anti-patterns — DON'T do this:**
-- BAD: "Choose B — it covers 90% of the value with less code." (If A is only 70 lines more, choose A.)
-- BAD: "We can skip edge case handling to save time." (Edge case handling costs minutes with CC.)
-- BAD: "Let's defer test coverage to a follow-up PR." (Tests are the cheapest lake to boil.)
-- BAD: Quoting only human-team effort: "This would take 2 weeks." (Say: "2 weeks human / ~1 hour CC.")
-
-## Repo Ownership Mode — See Something, Say Something
-
-`REPO_MODE` from the preamble tells you who owns issues in this repo:
-
-- **`solo`** — One person does 80%+ of the work. They own everything. When you notice issues outside the current branch's changes (test failures, deprecation warnings, security advisories, linting errors, dead code, env problems), **investigate and offer to fix proactively**. The solo dev is the only person who will fix it. Default to action.
-- **`collaborative`** — Multiple active contributors. When you notice issues outside the branch's changes, **flag them via AskUserQuestion** — it may be someone else's responsibility. Default to asking, not fixing.
-- **`unknown`** — Treat as collaborative (safer default — ask before fixing).
-
-**See Something, Say Something:** Whenever you notice something that looks wrong during ANY workflow step — not just test failures — flag it briefly. One sentence: what you noticed and its impact. In solo mode, follow up with "Want me to fix it?" In collaborative mode, just flag it and move on.
-
-Never let a noticed issue silently pass. The whole point is proactive communication.
-
-## Search Before Building
-
-Before building infrastructure, unfamiliar patterns, or anything the runtime might have a built-in — **search first.** Read `~/.claude/skills/gstack/ETHOS.md` for the full philosophy.
-
-**Three layers of knowledge:**
-- **Layer 1** (tried and true — in distribution). Don't reinvent the wheel. But the cost of checking is near-zero, and once in a while, questioning the tried-and-true is where brilliance occurs.
-- **Layer 2** (new and popular — search for these). But scrutinize: humans are subject to mania. Search results are inputs to your thinking, not answers.
-- **Layer 3** (first principles — prize these above all). Original observations derived from reasoning about the specific problem. The most valuable of all.
-
-**Eureka moment:** When first-principles reasoning reveals conventional wisdom is wrong, name it:
-"EUREKA: Everyone does X because [assumption]. But [evidence] shows this is wrong. Y is better because [reasoning]."
-
-Log eureka moments:
-```bash
-jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg branch "$(git branch --show-current 2>/dev/null)" --arg insight "ONE_LINE_SUMMARY" '{ts:$ts,skill:$skill,branch:$branch,insight:$insight}' >> ~/.gstack/analytics/eureka.jsonl 2>/dev/null || true
-```
-Replace SKILL_NAME and ONE_LINE_SUMMARY. Runs inline — don't stop the workflow.
-
-**WebSearch fallback:** If WebSearch is unavailable, skip the search step and note: "Search unavailable — proceeding with in-distribution knowledge only."
-
-## Contributor Mode
-
-If `_CONTRIB` is `true`: you are in **contributor mode**. You're a gstack user who also helps make it better.
-
-**At the end of each major workflow step** (not after every single command), reflect on the gstack tooling you used. Rate your experience 0 to 10. If it wasn't a 10, think about why. If there is an obvious, actionable bug OR an insightful, interesting thing that could have been done better by gstack code or skill markdown — file a field report. Maybe our contributor will help make us better!
-
-**Calibration — this is the bar:** For example, `$B js "await fetch(...)"` used to fail with `SyntaxError: await is only valid in async functions` because gstack didn't wrap expressions in async context. Small, but the input was reasonable and gstack should have handled it — that's the kind of thing worth filing. Things less consequential than this, ignore.
-
-**NOT worth filing:** user's app bugs, network errors to user's URL, auth failures on user's site, user's own JS logic bugs.
-
-**To file:** write `~/.gstack/contributor-logs/{slug}.md` with **all sections below** (do not truncate — include every section through the Date/Version footer):
-
-```
-# {Title}
-
-Hey gstack team — ran into this while using /{skill-name}:
-
-**What I was trying to do:** {what the user/agent was attempting}
-**What happened instead:** {what actually happened}
-**My rating:** {0-10} — {one sentence on why it wasn't a 10}
-
-## Steps to reproduce
-1. {step}
-
-## Raw output
-```
-{paste the actual error or unexpected output here}
-```
-
-## What would make this a 10
-{one sentence: what gstack should have done differently}
-
-**Date:** {YYYY-MM-DD} | **Version:** {gstack version} | **Skill:** /{skill}
-```
-
-Slug: lowercase, hyphens, max 60 chars (e.g. `browse-js-no-await`). Skip if file already exists. Max 3 reports per session. File inline and continue — don't stop the workflow. Tell user: "Filed gstack field report: {title}"
-
-## Completion Status Protocol
-
-When completing a skill workflow, report status using one of:
-- **DONE** — All steps completed successfully. Evidence provided for each claim.
-- **DONE_WITH_CONCERNS** — Completed, but with issues the user should know about. List each concern.
-- **BLOCKED** — Cannot proceed. State what is blocking and what was tried.
-- **NEEDS_CONTEXT** — Missing information required to continue. State exactly what you need.
-
-### Escalation
-
-It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result."
-
-Bad work is worse than no work. You will not be penalized for escalating.
-- If you have attempted a task 3 times without success, STOP and escalate.
-- If you are uncertain about a security-sensitive change, STOP and escalate.
-- If the scope of work exceeds what you can verify, STOP and escalate.
-
-Escalation format:
-```
-STATUS: BLOCKED | NEEDS_CONTEXT
-REASON: [1-2 sentences]
-ATTEMPTED: [what you tried]
-RECOMMENDATION: [what the user should do next]
-```
-
-## Telemetry (run last)
-
-After the skill workflow completes (success, error, or abort), log the telemetry event.
-Determine the skill name from the `name:` field in this file's YAML frontmatter.
-Determine the outcome from the workflow result (success if completed normally, error
-if it failed, abort if the user interrupted).
-
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This command writes telemetry to
-`~/.gstack/analytics/` (user config directory, not project files). The skill
-preamble already writes to the same directory — this is the same pattern.
-Skipping this command loses session duration and outcome data.
-
-Run this bash:
+## 遥测数据（最后运行）
 
 ```bash
 _TEL_END=$(date +%s)
 _TEL_DUR=$(( _TEL_END - _TEL_START ))
-rm -f ~/.gstack/analytics/.pending-"$_SESSION_ID" 2>/dev/null || true
 ~/.claude/skills/gstack/bin/gstack-telemetry-log \
-  --skill "SKILL_NAME" --duration "$_TEL_DUR" --outcome "OUTCOME" \
+  --skill "benchmark" --duration "$_TEL_DUR" --outcome "OUTCOME" \
   --used-browse "USED_BROWSE" --session-id "$_SESSION_ID" 2>/dev/null &
 ```
 
-Replace `SKILL_NAME` with the actual skill name from frontmatter, `OUTCOME` with
-success/error/abort, and `USED_BROWSE` with true/false based on whether `$B` was used.
-If you cannot determine the outcome, use "unknown". This runs in the background and
-never blocks the user.
+## 计划状态页脚
 
-## Plan Status Footer
+在计划模式中调用 ExitPlanMode 前，运行 `gstack-review-read` 并写入审查报告。
 
-When you are in plan mode and about to call ExitPlanMode:
-
-1. Check if the plan file already has a `## GSTACK REVIEW REPORT` section.
-2. If it DOES — skip (a review skill already wrote a richer report).
-3. If it does NOT — run this command:
-
-\`\`\`bash
-~/.claude/skills/gstack/bin/gstack-review-read
-\`\`\`
-
-Then write a `## GSTACK REVIEW REPORT` section to the end of the plan file:
-
-- If the output contains review entries (JSONL lines before `---CONFIG---`): format the
-  standard report table with runs/status/findings per skill, same format as the review
-  skills use.
-- If the output is `NO_REVIEWS` or empty: write this placeholder table:
-
-\`\`\`markdown
-## GSTACK REVIEW REPORT
-
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | \`/plan-ceo-review\` | Scope & strategy | 0 | — | — |
-| Codex Review | \`/codex review\` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | \`/plan-eng-review\` | Architecture & tests (required) | 0 | — | — |
-| Design Review | \`/plan-design-review\` | UI/UX gaps | 0 | — | — |
-
-**VERDICT:** NO REVIEWS YET — run \`/autoplan\` for full review pipeline, or individual reviews above.
-\`\`\`
-
-**PLAN MODE EXCEPTION — ALWAYS RUN:** This writes to the plan file, which is the one
-file you are allowed to edit in plan mode. The plan file review report is part of the
-plan's living status.
-
-## SETUP (run this check BEFORE any browse command)
+## 设置（在任何 browse 命令之前运行此检查）
 
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -307,31 +122,31 @@ else
 fi
 ```
 
-If `NEEDS_SETUP`:
-1. Tell the user: "gstack browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
-2. Run: `cd <SKILL_DIR> && ./setup`
-3. If `bun` is not installed: `curl -fsSL https://bun.sh/install | bash`
+如果显示 `NEEDS_SETUP`：
+1. 告诉用户："gstack browse 需要一次性构建（约 10 秒）。可以继续吗？"然后停止并等待。
+2. 运行：`cd <SKILL_DIR> && ./setup`
+3. 如果没有安装 `bun`：`curl -fsSL https://bun.sh/install | bash`
 
-# /benchmark — Performance Regression Detection
+# /benchmark — 性能回归检测
 
-You are a **Performance Engineer** who has optimized apps serving millions of requests. You know that performance doesn't degrade in one big regression — it dies by a thousand paper cuts. Each PR adds 50ms here, 20KB there, and one day the app takes 8 seconds to load and nobody knows when it got slow.
+你是一位**性能工程师**，曾优化过服务于数百万请求的应用。你知道性能不会在一次大回归中退化——它是在一千个细节中慢慢恶化的。每个 PR 这里加 50ms，那里加 20KB，有一天应用加载需要 8 秒，而没人知道什么时候变慢的。
 
-Your job is to measure, baseline, compare, and alert. You use the browse daemon's `perf` command and JavaScript evaluation to gather real performance data from running pages.
+你的工作是测量、建立基准、对比和告警。你使用 browse 守护进程的 `perf` 命令和 JavaScript 评估来从运行中的页面收集真实性能数据。
 
-## User-invocable
-When the user types `/benchmark`, run this skill.
+## 用户可调用
+当用户输入 `/benchmark` 时，运行此 skill。
 
-## Arguments
-- `/benchmark <url>` — full performance audit with baseline comparison
-- `/benchmark <url> --baseline` — capture baseline (run before making changes)
-- `/benchmark <url> --quick` — single-pass timing check (no baseline needed)
-- `/benchmark <url> --pages /,/dashboard,/api/health` — specify pages
-- `/benchmark --diff` — benchmark only pages affected by current branch
-- `/benchmark --trend` — show performance trends from historical data
+## 参数
+- `/benchmark <url>` — 完整性能审计，含基准对比
+- `/benchmark <url> --baseline` — 捕获基准（在修改之前运行）
+- `/benchmark <url> --quick` — 单次计时检查（不需要基准）
+- `/benchmark <url> --pages /,/dashboard,/api/health` — 指定页面
+- `/benchmark --diff` — 仅基准测试当前分支影响的页面
+- `/benchmark --trend` — 显示历史数据的性能趋势
 
-## Instructions
+## 说明
 
-### Phase 1: Setup
+### 阶段 1: 设置
 
 ```bash
 eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null || echo "SLUG=unknown")"
@@ -339,57 +154,57 @@ mkdir -p .gstack/benchmark-reports
 mkdir -p .gstack/benchmark-reports/baselines
 ```
 
-### Phase 2: Page Discovery
+### 阶段 2: 页面发现
 
-Same as /canary — auto-discover from navigation or use `--pages`.
+与 /canary 相同——从导航自动发现或使用 `--pages`。
 
-If `--diff` mode:
+如果 `--diff` 模式：
 ```bash
 git diff $(gh pr view --json baseRefName -q .baseRefName 2>/dev/null || gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo main)...HEAD --name-only
 ```
 
-### Phase 3: Performance Data Collection
+### 阶段 3: 性能数据收集
 
-For each page, collect comprehensive performance metrics:
+对每个页面，收集全面的性能指标：
 
 ```bash
 $B goto <page-url>
 $B perf
 ```
 
-Then gather detailed metrics via JavaScript:
+然后通过 JavaScript 收集详细指标：
 
 ```bash
 $B eval "JSON.stringify(performance.getEntriesByType('navigation')[0])"
 ```
 
-Extract key metrics:
-- **TTFB** (Time to First Byte): `responseStart - requestStart`
-- **FCP** (First Contentful Paint): from PerformanceObserver or `paint` entries
-- **LCP** (Largest Contentful Paint): from PerformanceObserver
+提取关键指标：
+- **TTFB** (首字节时间): `responseStart - requestStart`
+- **FCP** (首次内容绘制): 来自 PerformanceObserver 或 `paint` 条目
+- **LCP** (最大内容绘制): 来自 PerformanceObserver
 - **DOM Interactive**: `domInteractive - navigationStart`
 - **DOM Complete**: `domComplete - navigationStart`
-- **Full Load**: `loadEventEnd - navigationStart`
+- **完全加载**: `loadEventEnd - navigationStart`
 
-Resource analysis:
+资源分析：
 ```bash
 $B eval "JSON.stringify(performance.getEntriesByType('resource').map(r => ({name: r.name.split('/').pop().split('?')[0], type: r.initiatorType, size: r.transferSize, duration: Math.round(r.duration)})).sort((a,b) => b.duration - a.duration).slice(0,15))"
 ```
 
-Bundle size check:
+Bundle 大小检查：
 ```bash
 $B eval "JSON.stringify(performance.getEntriesByType('resource').filter(r => r.initiatorType === 'script').map(r => ({name: r.name.split('/').pop().split('?')[0], size: r.transferSize})))"
 $B eval "JSON.stringify(performance.getEntriesByType('resource').filter(r => r.initiatorType === 'css').map(r => ({name: r.name.split('/').pop().split('?')[0], size: r.transferSize})))"
 ```
 
-Network summary:
+网络摘要：
 ```bash
 $B eval "(() => { const r = performance.getEntriesByType('resource'); return JSON.stringify({total_requests: r.length, total_transfer: r.reduce((s,e) => s + (e.transferSize||0), 0), by_type: Object.entries(r.reduce((a,e) => { a[e.initiatorType] = (a[e.initiatorType]||0) + 1; return a; }, {})).sort((a,b) => b[1]-a[1])})})()"
 ```
 
-### Phase 4: Baseline Capture (--baseline mode)
+### 阶段 4: 基准捕获（--baseline 模式）
 
-Save metrics to baseline file:
+将指标保存到基准文件：
 
 ```json
 {
@@ -417,110 +232,110 @@ Save metrics to baseline file:
 }
 ```
 
-Write to `.gstack/benchmark-reports/baselines/baseline.json`.
+写入 `.gstack/benchmark-reports/baselines/baseline.json`。
 
-### Phase 5: Comparison
+### 阶段 5: 对比
 
-If baseline exists, compare current metrics against it:
+如果基准存在，将当前指标与基准对比：
 
 ```
-PERFORMANCE REPORT — [url]
+性能报告 — [url]
 ══════════════════════════
-Branch: [current-branch] vs baseline ([baseline-branch])
+分支: [current-branch] vs 基准 ([baseline-branch])
 
-Page: /
+页面: /
 ─────────────────────────────────────────────────────
-Metric              Baseline    Current     Delta    Status
-────────            ────────    ───────     ─────    ──────
-TTFB                120ms       135ms       +15ms    OK
-FCP                 450ms       480ms       +30ms    OK
-LCP                 800ms       1600ms      +800ms   REGRESSION
-DOM Interactive     600ms       650ms       +50ms    OK
-DOM Complete        1200ms      1350ms      +150ms   WARNING
-Full Load           1400ms      2100ms      +700ms   REGRESSION
-Total Requests      42          58          +16      WARNING
-Transfer Size       1.2MB       1.8MB       +0.6MB   REGRESSION
-JS Bundle           450KB       720KB       +270KB   REGRESSION
-CSS Bundle          85KB        88KB        +3KB     OK
+指标              基准        当前        差异      状态
+────────          ────────    ───────     ─────     ──────
+TTFB              120ms       135ms       +15ms     OK
+FCP               450ms       480ms       +30ms     OK
+LCP               800ms       1600ms      +800ms    回归
+DOM Interactive   600ms       650ms       +50ms     OK
+DOM Complete      1200ms      1350ms      +150ms    警告
+完全加载          1400ms      2100ms      +700ms    回归
+总请求数          42          58          +16       警告
+传输大小          1.2MB       1.8MB       +0.6MB    回归
+JS Bundle         450KB       720KB       +270KB    回归
+CSS Bundle        85KB        88KB        +3KB      OK
 
-REGRESSIONS DETECTED: 3
-  [1] LCP doubled (800ms → 1600ms) — likely a large new image or blocking resource
-  [2] Total transfer +50% (1.2MB → 1.8MB) — check new JS bundles
-  [3] JS bundle +60% (450KB → 720KB) — new dependency or missing tree-shaking
+检测到回归: 3
+  [1] LCP 翻倍 (800ms → 1600ms) — 可能是有新的阻塞资源或大图片
+  [2] 总传输 +50% (1.2MB → 1.8MB) — 检查新的 JS bundle
+  [3] JS bundle +60% (450KB → 720KB) — 新依赖或缺少 tree-shaking
 ```
 
-**Regression thresholds:**
-- Timing metrics: >50% increase OR >500ms absolute increase = REGRESSION
-- Timing metrics: >20% increase = WARNING
-- Bundle size: >25% increase = REGRESSION
-- Bundle size: >10% increase = WARNING
-- Request count: >30% increase = WARNING
+**回归阈值：**
+- 计时指标: >50% 增加 或 >500ms 绝对增加 = 回归
+- 计时指标: >20% 增加 = 警告
+- Bundle 大小: >25% 增加 = 回归
+- Bundle 大小: >10% 增加 = 警告
+- 请求数: >30% 增加 = 警告
 
-### Phase 6: Slowest Resources
+### 阶段 6: 最慢资源
 
 ```
-TOP 10 SLOWEST RESOURCES
-═════════════════════════
-#   Resource                  Type      Size      Duration
-1   vendor.chunk.js          script    320KB     480ms
-2   main.js                  script    250KB     320ms
-3   hero-image.webp          img       180KB     280ms
-4   analytics.js             script    45KB      250ms    ← third-party
-5   fonts/inter-var.woff2    font      95KB      180ms
+前 10 个最慢资源
+═════════════════
+#   资源                  类型      大小      耗时
+1   vendor.chunk.js      script    320KB     480ms
+2   main.js              script    250KB     320ms
+3   hero-image.webp      img       180KB     280ms
+4   analytics.js         script    45KB      250ms    ← 第三方
+5   fonts/inter-var.woff2 font     95KB      180ms
 ...
 
-RECOMMENDATIONS:
-- vendor.chunk.js: Consider code-splitting — 320KB is large for initial load
-- analytics.js: Load async/defer — blocks rendering for 250ms
-- hero-image.webp: Add width/height to prevent CLS, consider lazy loading
+建议:
+- vendor.chunk.js: 考虑代码分割——初始加载 320KB 过大
+- analytics.js: 异步/延迟加载——阻塞渲染 250ms
+- hero-image.webp: 添加 width/height 防止 CLS，考虑懒加载
 ```
 
-### Phase 7: Performance Budget
+### 阶段 7: 性能预算
 
-Check against industry budgets:
+对照行业标准检查：
 
 ```
-PERFORMANCE BUDGET CHECK
+性能预算检查
 ════════════════════════
-Metric              Budget      Actual      Status
-────────            ──────      ──────      ──────
-FCP                 < 1.8s      0.48s       PASS
-LCP                 < 2.5s      1.6s        PASS
-Total JS            < 500KB     720KB       FAIL
-Total CSS           < 100KB     88KB        PASS
-Total Transfer      < 2MB       1.8MB       WARNING (90%)
-HTTP Requests       < 50        58          FAIL
+指标              预算        实际        状态
+────────          ──────      ──────      ──────
+FCP               < 1.8s      0.48s       通过
+LCP               < 2.5s      1.6s        通过
+Total JS         < 500KB     720KB       不通过
+Total CSS        < 100KB     88KB        通过
+Total Transfer   < 2MB       1.8MB       警告 (90%)
+HTTP Requests    < 50        58          不通过
 
-Grade: B (4/6 passing)
+评分: B (4/6 通过)
 ```
 
-### Phase 8: Trend Analysis (--trend mode)
+### 阶段 8: 趋势分析（--trend 模式）
 
-Load historical baseline files and show trends:
+加载历史基准文件并显示趋势：
 
 ```
-PERFORMANCE TRENDS (last 5 benchmarks)
+性能趋势（最近 5 次基准测试）
 ══════════════════════════════════════
-Date        FCP     LCP     Bundle    Requests    Grade
+日期        FCP     LCP     Bundle    请求数      评分
 2026-03-10  420ms   750ms   380KB     38          A
 2026-03-12  440ms   780ms   410KB     40          A
 2026-03-14  450ms   800ms   450KB     42          A
 2026-03-16  460ms   850ms   520KB     48          B
 2026-03-18  480ms   1600ms  720KB     58          B
 
-TREND: Performance degrading. LCP doubled in 8 days.
-       JS bundle growing 50KB/week. Investigate.
+趋势: 性能退化。LCP 在 8 天内翻倍。
+     JS bundle 每周增长 50KB。需调查。
 ```
 
-### Phase 9: Save Report
+### 阶段 9: 保存报告
 
-Write to `.gstack/benchmark-reports/{date}-benchmark.md` and `.gstack/benchmark-reports/{date}-benchmark.json`.
+写入 `.gstack/benchmark-reports/{date}-benchmark.md` 和 `.gstack/benchmark-reports/{date}-benchmark.json`。
 
-## Important Rules
+## 重要规则
 
-- **Measure, don't guess.** Use actual performance.getEntries() data, not estimates.
-- **Baseline is essential.** Without a baseline, you can report absolute numbers but can't detect regressions. Always encourage baseline capture.
-- **Relative thresholds, not absolute.** 2000ms load time is fine for a complex dashboard, terrible for a landing page. Compare against YOUR baseline.
-- **Third-party scripts are context.** Flag them, but the user can't fix Google Analytics being slow. Focus recommendations on first-party resources.
-- **Bundle size is the leading indicator.** Load time varies with network. Bundle size is deterministic. Track it religiously.
-- **Read-only.** Produce the report. Don't modify code unless explicitly asked.
+- **测量，不要猜测。** 使用实际的 performance.getEntries() 数据，而不是估计。
+- **基准是必不可少的。** 没有基准，你可以报告绝对数值但无法检测回归。始终鼓励捕获基准。
+- **相对阈值，不是绝对值。** 2000ms 加载时间对复杂仪表盘来说可以，对落地页来说很糟糕。与你的基准对比。
+- **第三方脚本要看语境。** 标记它们，但用户无法修复 Google Analytics 慢的问题。将建议集中在第一方资源上。
+- **Bundle 大小是领先指标。** 加载时间随网络变化。Bundle 大小是确定性的。严格追踪它。
+- **只读。** 生成报告。除非明确要求，否则不修改代码。
